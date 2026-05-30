@@ -1,0 +1,12 @@
+{
+  "name": "mindvideo-auto-sign",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "checkin": "node checkin.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
