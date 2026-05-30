@@ -23,5 +23,7 @@ jobs:
       - name: Run MindVideo check-in
         env:
           MINDVIDEO_TOKEN: ${{ secrets.MINDVIDEO_TOKEN }}
+          MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
+          MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
           MINDVIDEO_LANG: zh-TW
         run: npm run checkin

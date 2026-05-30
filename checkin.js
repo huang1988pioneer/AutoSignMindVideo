@@ -28,18 +28,28 @@ function loadEnvFile(filePath) {
   }
 }
 
-function getToken() {
-  const token = process.env.MINDVIDEO_TOKEN?.trim();
-  if (!token) {
+function getTokens() {
+  const tokens = Object.entries(process.env)
+    .filter(([key, value]) => /^MINDVIDEO_TOKEN\d*$/.test(key) && value?.trim())
+    .sort(([a], [b]) => {
+      const tokenNumber = (key) => {
+        if (key === "MINDVIDEO_TOKEN") return 1;
+        return Number(key.replace("MINDVIDEO_TOKEN", "")) || Number.MAX_SAFE_INTEGER;
+      };
+      return tokenNumber(a) - tokenNumber(b);
+    })
+    .map(([key, value]) => ({ name: key, token: value.trim() }));
+
+  if (tokens.length === 0) {
     throw new Error(
       "Missing MINDVIDEO_TOKEN. Copy .env.example to .env and paste your MindVideo login token."
     );
   }
-  return token;
+
+  return tokens;
 }
 
-async function callMindVideo(endpoint, options = {}) {
-  const token = getToken();
+async function callMindVideo(token, endpoint, options = {}) {
   const lang = process.env.MINDVIDEO_LANG || "zh-TW";
 
   const response = await fetch(`${API_BASE}/${endpoint.replace(/^\/+/, "")}`, {
@@ -92,19 +102,40 @@ function summarizeRecord(record) {
 async function main() {
   loadEnvFile(path.join(process.cwd(), ".env"));
 
-  console.log(`[${new Date().toISOString()}] Checking MindVideo sign-in status...`);
-  const before = await callMindVideo("api/checkin/records");
+  const tokens = getTokens();
+  console.log(
+    `[${new Date().toISOString()}] Checking MindVideo sign-in status for ${tokens.length} account(s)...`
+  );
+
+  let failures = 0;
+  for (const account of tokens) {
+    try {
+      await checkinAccount(account);
+    } catch (error) {
+      failures += 1;
+      console.error(`[${account.name}] 簽到失敗：${error.message}`);
+    }
+  }
+
+  if (failures > 0) {
+    throw new Error(`${failures} account(s) failed.`);
+  }
+}
+
+async function checkinAccount(account) {
+  console.log(`[${account.name}] 檢查簽到狀態...`);
+  const before = await callMindVideo(account.token, "api/checkin/records");
   const record = before.data;
-  console.log(`狀態：${summarizeRecord(record)}`);
+  console.log(`[${account.name}] 狀態：${summarizeRecord(record)}`);
 
   if (!record?.can_checkin_today) {
-    console.log("不需要簽到：今天已完成。");
+    console.log(`[${account.name}] 不需要簽到：今天已完成。`);
     return;
   }
 
-  await callMindVideo("api/checkin", { method: "POST" });
-  const after = await callMindVideo("api/checkin/records");
-  console.log(`簽到成功：${summarizeRecord(after.data)}`);
+  await callMindVideo(account.token, "api/checkin", { method: "POST" });
+  const after = await callMindVideo(account.token, "api/checkin/records");
+  console.log(`[${account.name}] 簽到成功：${summarizeRecord(after.data)}`);
 }
 
 main().catch((error) => {

@@ -6,6 +6,7 @@ This signs in to MindVideo once per day using the same API as the website.
 
 1. Copy `.env.example` to `.env`.
 2. Paste your MindVideo token into `MINDVIDEO_TOKEN`.
+   For more accounts, add `MINDVIDEO_TOKEN2`, `MINDVIDEO_TOKEN3`, and so on.
 3. Run:
 
 ```sh
@@ -42,6 +43,12 @@ Add this repository secret before enabling it:
 
 ```text
 MINDVIDEO_TOKEN
+```
+
+For another MindVideo account, add another repository secret:
+
+```text
+MINDVIDEO_TOKEN2
 ```
 
 You can also run it manually from the repository's Actions tab.
