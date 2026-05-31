@@ -98,11 +98,47 @@ function summarizeRecord(record) {
   return parts.join(", ") || JSON.stringify(record);
 }
 
+function summarizeCreditStats(stats) {
+  if (!stats || typeof stats !== "object") return "No credit stats returned.";
+
+  const interesting = {};
+  const visit = (value, pathParts = []) => {
+    if (value === null || value === undefined) return;
+    if (typeof value === "number" || typeof value === "boolean" || typeof value === "string") {
+      const key = pathParts.join(".");
+      if (/credit|point|score|balance|quota|limit|used|free|total|remain|subscription/i.test(key)) {
+        interesting[key] = value;
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.slice(0, 5).forEach((item, index) => visit(item, [...pathParts, String(index)]));
+      return;
+    }
+    for (const [key, child] of Object.entries(value)) {
+      visit(child, [...pathParts, key]);
+    }
+  };
+
+  visit(stats);
+  return Object.keys(interesting).length ? JSON.stringify(interesting) : JSON.stringify(stats);
+}
+
+async function logCreditStats(account) {
+  try {
+    const stats = await callMindVideo(account.token, "api/user/credits/stats");
+    console.log(`[${account.name}] Credit stats: ${summarizeCreditStats(stats.data ?? stats)}`);
+  } catch (error) {
+    console.warn(`[${account.name}] Credit stats unavailable: ${error.message}`);
+  }
+}
+
 async function checkinAccount(account) {
   console.log(`[${account.name}] Checking sign-in status...`);
   const before = await callMindVideo(account.token, "api/checkin/records");
   const record = before.data;
   console.log(`[${account.name}] Status: ${summarizeRecord(record)}`);
+  await logCreditStats(account);
 
   if (!record?.can_checkin_today) {
     console.log(`[${account.name}] No check-in needed: already completed today.`);
@@ -112,6 +148,7 @@ async function checkinAccount(account) {
   await callMindVideo(account.token, "api/checkin", { method: "POST" });
   const after = await callMindVideo(account.token, "api/checkin/records");
   console.log(`[${account.name}] Check-in successful: ${summarizeRecord(after.data)}`);
+  await logCreditStats(account);
 }
 
 async function main() {
