@@ -2,24 +2,14 @@ name: MindVideo Daily Check-in
 
 on:
   schedule:
-    # Asia/Taipei 05:07-06:17, one account every 7 minutes.
-    - cron: "7 21 * * *"
-    - cron: "14 21 * * *"
-    - cron: "21 21 * * *"
-    - cron: "28 21 * * *"
-    - cron: "35 21 * * *"
-    - cron: "42 21 * * *"
-    - cron: "49 21 * * *"
-    - cron: "56 21 * * *"
-    - cron: "3 22 * * *"
-    - cron: "10 22 * * *"
-    - cron: "17 22 * * *"
+    # Asia/Taipei 05:06 every day.
+    - cron: "6 21 * * *"
   workflow_dispatch:
 
 jobs:
   checkin-token-1:
     name: checkin-token-1 goldshoot0720
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -35,7 +25,7 @@ jobs:
 
   checkin-token-2:
     name: checkin-token-2 abuhg17
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '14 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -51,7 +41,7 @@ jobs:
 
   checkin-token-3:
     name: checkin-token-3 fengtyprinfo
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '21 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -67,7 +57,7 @@ jobs:
 
   checkin-token-4:
     name: checkin-token-4 feng33feng35feng3
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '28 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -83,7 +73,7 @@ jobs:
 
   checkin-token-5:
     name: checkin-token-5 chbondg2
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '35 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -99,7 +89,7 @@ jobs:
 
   checkin-token-6:
     name: checkin-token-6 huang1988pioneer
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '42 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -115,7 +105,7 @@ jobs:
 
   checkin-token-7:
     name: checkin-token-7 chbondg_outloook
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '49 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -131,7 +121,7 @@ jobs:
 
   checkin-token-8:
     name: checkin-token-8 gaokaolevel3iptopscorer_outlook
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '56 21 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -147,7 +137,7 @@ jobs:
 
   checkin-token-9:
     name: checkin-token-9 huang1988pioneer_outloook
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '3 22 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -163,7 +153,7 @@ jobs:
 
   checkin-token-10:
     name: checkin-token-10 fengtuta_tuta
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 22 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -179,7 +169,7 @@ jobs:
 
   checkin-token-11:
     name: checkin-token-11 fengfence_fence
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 22 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '6 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
