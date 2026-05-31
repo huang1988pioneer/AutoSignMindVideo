@@ -2,36 +2,182 @@ name: MindVideo Daily Check-in
 
 on:
   schedule:
-    # Run all configured MindVideo tokens at 05:07 Asia/Taipei.
+    # Asia/Taipei 05:07-06:17, one account every 7 minutes.
     - cron: "7 21 * * *"
+    - cron: "14 21 * * *"
+    - cron: "21 21 * * *"
+    - cron: "28 21 * * *"
+    - cron: "35 21 * * *"
+    - cron: "42 21 * * *"
+    - cron: "49 21 * * *"
+    - cron: "56 21 * * *"
+    - cron: "3 22 * * *"
+    - cron: "10 22 * * *"
+    - cron: "17 22 * * *"
   workflow_dispatch:
 
 jobs:
-  checkin-all-tokens:
+  checkin-token-1:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
-
       - name: Run MindVideo check-in for MINDVIDEO_TOKEN
         env:
           MINDVIDEO_TOKEN: ${{ secrets.MINDVIDEO_TOKEN }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-2:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '14 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN2
+        env:
           MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-3:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '21 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN3
+        env:
           MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-4:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '28 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN4
+        env:
           MINDVIDEO_TOKEN4: ${{ secrets.MINDVIDEO_TOKEN4 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-5:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '35 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN5
+        env:
           MINDVIDEO_TOKEN5: ${{ secrets.MINDVIDEO_TOKEN5 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-6:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '42 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN6
+        env:
           MINDVIDEO_TOKEN6: ${{ secrets.MINDVIDEO_TOKEN6 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-7:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '49 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN7
+        env:
           MINDVIDEO_TOKEN7: ${{ secrets.MINDVIDEO_TOKEN7 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-8:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '56 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN8
+        env:
           MINDVIDEO_TOKEN8: ${{ secrets.MINDVIDEO_TOKEN8 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-9:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '3 22 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN9
+        env:
           MINDVIDEO_TOKEN9: ${{ secrets.MINDVIDEO_TOKEN9 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-10:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 22 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN10
+        env:
           MINDVIDEO_TOKEN10: ${{ secrets.MINDVIDEO_TOKEN10 }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-11:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 22 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN11
+        env:
           MINDVIDEO_TOKEN11: ${{ secrets.MINDVIDEO_TOKEN11 }}
           MINDVIDEO_LANG: zh-TW
         run: npm run checkin
