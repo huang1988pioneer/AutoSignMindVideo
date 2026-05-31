@@ -32,9 +32,8 @@ function getTokens() {
   const tokens = Object.entries(process.env)
     .filter(([key, value]) => /^MINDVIDEO_TOKEN\d+$/.test(key) && value?.trim())
     .sort(([a], [b]) => {
-      const tokenNumber = (key) => {
-        return Number(key.replace("MINDVIDEO_TOKEN", "")) || Number.MAX_SAFE_INTEGER;
-      };
+      const tokenNumber = (key) =>
+        Number(key.replace("MINDVIDEO_TOKEN", "")) || Number.MAX_SAFE_INTEGER;
       return tokenNumber(a) - tokenNumber(b);
     })
     .map(([key, value]) => ({ name: key, token: value.trim() }));
@@ -87,15 +86,32 @@ function summarizeRecord(record) {
   if (!record) return "No record data returned.";
 
   const parts = [];
-  if (record.current_day !== undefined) parts.push(`??? ${record.current_day} 憭奈);
-  if (record.total_credits !== undefined) parts.push(`?桀? ${record.total_credits} 暺);
+  if (record.current_day !== undefined) parts.push(`streak ${record.current_day} day(s)`);
+  if (record.total_credits !== undefined) parts.push(`credits ${record.total_credits}`);
   if (record.single_checkin_credits !== undefined) {
-    parts.push(`瘥?舫? ${record.single_checkin_credits} 暺);
+    parts.push(`daily reward ${record.single_checkin_credits}`);
   }
   if (record.can_checkin_today !== undefined) {
-    parts.push(record.can_checkin_today ? "隞予?舐偷?? : "隞予撌脩偷??);
+    parts.push(record.can_checkin_today ? "can check in today" : "already checked in today");
   }
-  return parts.join("嚗?) || JSON.stringify(record);
+
+  return parts.join(", ") || JSON.stringify(record);
+}
+
+async function checkinAccount(account) {
+  console.log(`[${account.name}] Checking sign-in status...`);
+  const before = await callMindVideo(account.token, "api/checkin/records");
+  const record = before.data;
+  console.log(`[${account.name}] Status: ${summarizeRecord(record)}`);
+
+  if (!record?.can_checkin_today) {
+    console.log(`[${account.name}] No check-in needed: already completed today.`);
+    return;
+  }
+
+  await callMindVideo(account.token, "api/checkin", { method: "POST" });
+  const after = await callMindVideo(account.token, "api/checkin/records");
+  console.log(`[${account.name}] Check-in successful: ${summarizeRecord(after.data)}`);
 }
 
 async function main() {
@@ -112,7 +128,7 @@ async function main() {
       await checkinAccount(account);
     } catch (error) {
       failures += 1;
-      console.error(`[${account.name}] 蝪賢憭望?嚗?{error.message}`);
+      console.error(`[${account.name}] Check-in failed: ${error.message}`);
     }
   }
 
@@ -121,23 +137,7 @@ async function main() {
   }
 }
 
-async function checkinAccount(account) {
-  console.log(`[${account.name}] 瑼Ｘ蝪賢???..`);
-  const before = await callMindVideo(account.token, "api/checkin/records");
-  const record = before.data;
-  console.log(`[${account.name}] ???${summarizeRecord(record)}`);
-
-  if (!record?.can_checkin_today) {
-    console.log(`[${account.name}] 銝?閬偷?堆?隞予撌脣??);
-    return;
-  }
-
-  await callMindVideo(account.token, "api/checkin", { method: "POST" });
-  const after = await callMindVideo(account.token, "api/checkin/records");
-  console.log(`[${account.name}] 蝪賢??嚗?{summarizeRecord(after.data)}`);
-}
-
 main().catch((error) => {
-  console.error(`蝪賢憭望?嚗?{error.message}`);
+  console.error(`Check-in failed: ${error.message}`);
   process.exitCode = 1;
 });
