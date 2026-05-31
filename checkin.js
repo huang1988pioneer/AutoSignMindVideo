@@ -30,10 +30,9 @@ function loadEnvFile(filePath) {
 
 function getTokens() {
   const tokens = Object.entries(process.env)
-    .filter(([key, value]) => /^MINDVIDEO_TOKEN\d*$/.test(key) && value?.trim())
+    .filter(([key, value]) => /^MINDVIDEO_TOKEN\d+$/.test(key) && value?.trim())
     .sort(([a], [b]) => {
       const tokenNumber = (key) => {
-        if (key === "MINDVIDEO_TOKEN") return 1;
         return Number(key.replace("MINDVIDEO_TOKEN", "")) || Number.MAX_SAFE_INTEGER;
       };
       return tokenNumber(a) - tokenNumber(b);
@@ -42,7 +41,7 @@ function getTokens() {
 
   if (tokens.length === 0) {
     throw new Error(
-      "Missing MINDVIDEO_TOKEN. Copy .env.example to .env and paste your MindVideo login token."
+      "Missing MINDVIDEO_TOKEN1. Copy .env.example to .env and paste your MindVideo login token."
     );
   }
 
@@ -88,15 +87,15 @@ function summarizeRecord(record) {
   if (!record) return "No record data returned.";
 
   const parts = [];
-  if (record.current_day !== undefined) parts.push(`連續 ${record.current_day} 天`);
-  if (record.total_credits !== undefined) parts.push(`目前 ${record.total_credits} 點`);
+  if (record.current_day !== undefined) parts.push(`??? ${record.current_day} 憭奈);
+  if (record.total_credits !== undefined) parts.push(`?桀? ${record.total_credits} 暺);
   if (record.single_checkin_credits !== undefined) {
-    parts.push(`每日可領 ${record.single_checkin_credits} 點`);
+    parts.push(`瘥?舫? ${record.single_checkin_credits} 暺);
   }
   if (record.can_checkin_today !== undefined) {
-    parts.push(record.can_checkin_today ? "今天可簽到" : "今天已簽到");
+    parts.push(record.can_checkin_today ? "隞予?舐偷?? : "隞予撌脩偷??);
   }
-  return parts.join("，") || JSON.stringify(record);
+  return parts.join("嚗?) || JSON.stringify(record);
 }
 
 async function main() {
@@ -113,7 +112,7 @@ async function main() {
       await checkinAccount(account);
     } catch (error) {
       failures += 1;
-      console.error(`[${account.name}] 簽到失敗：${error.message}`);
+      console.error(`[${account.name}] 蝪賢憭望?嚗?{error.message}`);
     }
   }
 
@@ -123,22 +122,22 @@ async function main() {
 }
 
 async function checkinAccount(account) {
-  console.log(`[${account.name}] 檢查簽到狀態...`);
+  console.log(`[${account.name}] 瑼Ｘ蝪賢???..`);
   const before = await callMindVideo(account.token, "api/checkin/records");
   const record = before.data;
-  console.log(`[${account.name}] 狀態：${summarizeRecord(record)}`);
+  console.log(`[${account.name}] ???${summarizeRecord(record)}`);
 
   if (!record?.can_checkin_today) {
-    console.log(`[${account.name}] 不需要簽到：今天已完成。`);
+    console.log(`[${account.name}] 銝?閬偷?堆?隞予撌脣??);
     return;
   }
 
   await callMindVideo(account.token, "api/checkin", { method: "POST" });
   const after = await callMindVideo(account.token, "api/checkin/records");
-  console.log(`[${account.name}] 簽到成功：${summarizeRecord(after.data)}`);
+  console.log(`[${account.name}] 蝪賢??嚗?{summarizeRecord(after.data)}`);
 }
 
 main().catch((error) => {
-  console.error(`簽到失敗：${error.message}`);
+  console.error(`蝪賢憭望?嚗?{error.message}`);
   process.exitCode = 1;
 });
