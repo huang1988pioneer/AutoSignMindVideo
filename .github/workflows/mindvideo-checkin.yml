@@ -27,9 +27,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run MindVideo check-in for MINDVIDEO_TOKEN
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN1
         env:
-          MINDVIDEO_TOKEN: ${{ secrets.MINDVIDEO_TOKEN }}
+          MINDVIDEO_TOKEN1: ${{ secrets.MINDVIDEO_TOKEN1 }}
           MINDVIDEO_LANG: zh-TW
         run: npm run checkin
 
