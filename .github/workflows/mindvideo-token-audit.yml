@@ -10,6 +10,7 @@ jobs:
     steps:
       - name: Check duplicate MindVideo tokens
         env:
+          MINDVIDEO_TOKEN: ${{ secrets.MINDVIDEO_TOKEN }}
           MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
           MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
           MINDVIDEO_TOKEN4: ${{ secrets.MINDVIDEO_TOKEN4 }}
@@ -46,8 +47,12 @@ jobs:
           node <<'NODE'
           const tokens = [];
 
-          for (let index = 2; index <= 33; index += 1) {
-            const name = `MINDVIDEO_TOKEN${index}`;
+          const namesToCheck = [
+            "MINDVIDEO_TOKEN",
+            ...Array.from({ length: 32 }, (_, index) => `MINDVIDEO_TOKEN${index + 2}`),
+          ];
+
+          for (const name of namesToCheck) {
             const value = (process.env[name] || "").trim();
             if (value) tokens.push({ name, value });
           }
