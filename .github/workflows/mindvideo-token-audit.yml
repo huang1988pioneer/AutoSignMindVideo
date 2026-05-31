@@ -1,0 +1,77 @@
+name: MindVideo Token Audit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  duplicate-token-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check duplicate MindVideo tokens
+        env:
+          MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
+          MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
+          MINDVIDEO_TOKEN4: ${{ secrets.MINDVIDEO_TOKEN4 }}
+          MINDVIDEO_TOKEN5: ${{ secrets.MINDVIDEO_TOKEN5 }}
+          MINDVIDEO_TOKEN6: ${{ secrets.MINDVIDEO_TOKEN6 }}
+          MINDVIDEO_TOKEN7: ${{ secrets.MINDVIDEO_TOKEN7 }}
+          MINDVIDEO_TOKEN8: ${{ secrets.MINDVIDEO_TOKEN8 }}
+          MINDVIDEO_TOKEN9: ${{ secrets.MINDVIDEO_TOKEN9 }}
+          MINDVIDEO_TOKEN10: ${{ secrets.MINDVIDEO_TOKEN10 }}
+          MINDVIDEO_TOKEN11: ${{ secrets.MINDVIDEO_TOKEN11 }}
+          MINDVIDEO_TOKEN12: ${{ secrets.MINDVIDEO_TOKEN12 }}
+          MINDVIDEO_TOKEN13: ${{ secrets.MINDVIDEO_TOKEN13 }}
+          MINDVIDEO_TOKEN14: ${{ secrets.MINDVIDEO_TOKEN14 }}
+          MINDVIDEO_TOKEN15: ${{ secrets.MINDVIDEO_TOKEN15 }}
+          MINDVIDEO_TOKEN16: ${{ secrets.MINDVIDEO_TOKEN16 }}
+          MINDVIDEO_TOKEN17: ${{ secrets.MINDVIDEO_TOKEN17 }}
+          MINDVIDEO_TOKEN18: ${{ secrets.MINDVIDEO_TOKEN18 }}
+          MINDVIDEO_TOKEN19: ${{ secrets.MINDVIDEO_TOKEN19 }}
+          MINDVIDEO_TOKEN20: ${{ secrets.MINDVIDEO_TOKEN20 }}
+          MINDVIDEO_TOKEN21: ${{ secrets.MINDVIDEO_TOKEN21 }}
+          MINDVIDEO_TOKEN22: ${{ secrets.MINDVIDEO_TOKEN22 }}
+          MINDVIDEO_TOKEN23: ${{ secrets.MINDVIDEO_TOKEN23 }}
+          MINDVIDEO_TOKEN24: ${{ secrets.MINDVIDEO_TOKEN24 }}
+          MINDVIDEO_TOKEN25: ${{ secrets.MINDVIDEO_TOKEN25 }}
+          MINDVIDEO_TOKEN26: ${{ secrets.MINDVIDEO_TOKEN26 }}
+          MINDVIDEO_TOKEN27: ${{ secrets.MINDVIDEO_TOKEN27 }}
+          MINDVIDEO_TOKEN28: ${{ secrets.MINDVIDEO_TOKEN28 }}
+          MINDVIDEO_TOKEN29: ${{ secrets.MINDVIDEO_TOKEN29 }}
+          MINDVIDEO_TOKEN30: ${{ secrets.MINDVIDEO_TOKEN30 }}
+          MINDVIDEO_TOKEN31: ${{ secrets.MINDVIDEO_TOKEN31 }}
+          MINDVIDEO_TOKEN32: ${{ secrets.MINDVIDEO_TOKEN32 }}
+          MINDVIDEO_TOKEN33: ${{ secrets.MINDVIDEO_TOKEN33 }}
+        run: |
+          node <<'NODE'
+          const tokens = [];
+
+          for (let index = 2; index <= 33; index += 1) {
+            const name = `MINDVIDEO_TOKEN${index}`;
+            const value = (process.env[name] || "").trim();
+            if (value) tokens.push({ name, value });
+          }
+
+          const byValue = new Map();
+          for (const token of tokens) {
+            const names = byValue.get(token.value) || [];
+            names.push(token.name);
+            byValue.set(token.value, names);
+          }
+
+          const duplicates = [...byValue.values()].filter((names) => names.length > 1);
+
+          console.log(`Checked ${tokens.length} configured token(s), ignored empty secrets.`);
+
+          if (duplicates.length === 0) {
+            console.log("No duplicate MindVideo token values found.");
+            process.exit(0);
+          }
+
+          console.log("Duplicate MindVideo token values found:");
+          for (const names of duplicates) {
+            console.log(`- ${names.join(", ")}`);
+          }
+
+          process.exit(1);
+          NODE
