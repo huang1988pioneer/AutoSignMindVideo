@@ -18,6 +18,7 @@ on:
 
 jobs:
   checkin-token-1:
+    name: checkin-token-1 goldshoot0720
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -33,6 +34,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-2:
+    name: checkin-token-2 abuhg17
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '14 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -48,6 +50,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-3:
+    name: checkin-token-3 fengtyprinfo
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '21 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -63,6 +66,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-4:
+    name: checkin-token-4 feng33feng35feng3
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '28 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -78,6 +82,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-5:
+    name: checkin-token-5 chbondg2
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '35 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -93,6 +98,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-6:
+    name: checkin-token-6 huang1988pioneer
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '42 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -108,6 +114,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-7:
+    name: checkin-token-7 chbondg_outloook
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '49 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -123,6 +130,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-8:
+    name: checkin-token-8 gaokaolevel3iptopscorer_outlook
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '56 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -138,6 +146,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-9:
+    name: checkin-token-9 huang1988pioneer_outloook
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '3 22 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -153,6 +162,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-10:
+    name: checkin-token-10 fengtuta_tuta
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '10 22 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -168,6 +178,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-11:
+    name: checkin-token-11 fengfence_fence
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 22 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
