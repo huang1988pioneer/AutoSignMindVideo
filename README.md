@@ -6,7 +6,7 @@ This signs in to MindVideo once per day using the same API as the website.
 
 1. Copy `.env.example` to `.env`.
 2. Paste your MindVideo token into `MINDVIDEO_TOKEN`.
-   For more accounts, add `MINDVIDEO_TOKEN2`, `MINDVIDEO_TOKEN3`, and so on. GitHub Actions is preconfigured through `MINDVIDEO_TOKEN115`.
+   For more accounts, add `MINDVIDEO_TOKEN2`, `MINDVIDEO_TOKEN3`, and so on.
 3. Run:
 
 ```sh
@@ -37,7 +37,10 @@ The included schedule runs every day at 09:05.
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/mindvideo-checkin.yml` runs every day at 09:05 Asia/Taipei.
+The workflow in `.github/workflows/mindvideo-checkin.yml` runs:
+
+- `MINDVIDEO_TOKEN` every day at 05:07 Asia/Taipei.
+- `MINDVIDEO_TOKEN2` every day at 05:22 Asia/Taipei.
 
 Add this repository secret before enabling it:
 
@@ -45,13 +48,10 @@ Add this repository secret before enabling it:
 MINDVIDEO_TOKEN
 ```
 
-For more MindVideo accounts, add numbered repository secrets up to `MINDVIDEO_TOKEN115`:
+For the second MindVideo account, add another repository secret:
 
 ```text
 MINDVIDEO_TOKEN2
-MINDVIDEO_TOKEN3
-...
-MINDVIDEO_TOKEN115
 ```
 
 You can also run it manually from the repository's Actions tab.

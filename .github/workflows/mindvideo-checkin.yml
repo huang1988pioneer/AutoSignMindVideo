@@ -2,12 +2,15 @@ name: MindVideo Daily Check-in
 
 on:
   schedule:
-    # Runs daily at 09:05 Asia/Taipei.
-    - cron: "5 1 * * *"
+    # MINDVIDEO_TOKEN at 05:07 Asia/Taipei.
+    - cron: "7 21 * * *"
+    # MINDVIDEO_TOKEN2 at 05:22 Asia/Taipei.
+    - cron: "22 21 * * *"
   workflow_dispatch:
 
 jobs:
-  checkin:
+  checkin-token-1:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 21 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -20,122 +23,28 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Run MindVideo check-in
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN
         env:
           MINDVIDEO_TOKEN: ${{ secrets.MINDVIDEO_TOKEN }}
+          MINDVIDEO_LANG: zh-TW
+        run: npm run checkin
+
+  checkin-token-2:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '22 21 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run MindVideo check-in for MINDVIDEO_TOKEN2
+        env:
           MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
-          MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
-          MINDVIDEO_TOKEN4: ${{ secrets.MINDVIDEO_TOKEN4 }}
-          MINDVIDEO_TOKEN5: ${{ secrets.MINDVIDEO_TOKEN5 }}
-          MINDVIDEO_TOKEN6: ${{ secrets.MINDVIDEO_TOKEN6 }}
-          MINDVIDEO_TOKEN7: ${{ secrets.MINDVIDEO_TOKEN7 }}
-          MINDVIDEO_TOKEN8: ${{ secrets.MINDVIDEO_TOKEN8 }}
-          MINDVIDEO_TOKEN9: ${{ secrets.MINDVIDEO_TOKEN9 }}
-          MINDVIDEO_TOKEN10: ${{ secrets.MINDVIDEO_TOKEN10 }}
-          MINDVIDEO_TOKEN11: ${{ secrets.MINDVIDEO_TOKEN11 }}
-          MINDVIDEO_TOKEN12: ${{ secrets.MINDVIDEO_TOKEN12 }}
-          MINDVIDEO_TOKEN13: ${{ secrets.MINDVIDEO_TOKEN13 }}
-          MINDVIDEO_TOKEN14: ${{ secrets.MINDVIDEO_TOKEN14 }}
-          MINDVIDEO_TOKEN15: ${{ secrets.MINDVIDEO_TOKEN15 }}
-          MINDVIDEO_TOKEN16: ${{ secrets.MINDVIDEO_TOKEN16 }}
-          MINDVIDEO_TOKEN17: ${{ secrets.MINDVIDEO_TOKEN17 }}
-          MINDVIDEO_TOKEN18: ${{ secrets.MINDVIDEO_TOKEN18 }}
-          MINDVIDEO_TOKEN19: ${{ secrets.MINDVIDEO_TOKEN19 }}
-          MINDVIDEO_TOKEN20: ${{ secrets.MINDVIDEO_TOKEN20 }}
-          MINDVIDEO_TOKEN21: ${{ secrets.MINDVIDEO_TOKEN21 }}
-          MINDVIDEO_TOKEN22: ${{ secrets.MINDVIDEO_TOKEN22 }}
-          MINDVIDEO_TOKEN23: ${{ secrets.MINDVIDEO_TOKEN23 }}
-          MINDVIDEO_TOKEN24: ${{ secrets.MINDVIDEO_TOKEN24 }}
-          MINDVIDEO_TOKEN25: ${{ secrets.MINDVIDEO_TOKEN25 }}
-          MINDVIDEO_TOKEN26: ${{ secrets.MINDVIDEO_TOKEN26 }}
-          MINDVIDEO_TOKEN27: ${{ secrets.MINDVIDEO_TOKEN27 }}
-          MINDVIDEO_TOKEN28: ${{ secrets.MINDVIDEO_TOKEN28 }}
-          MINDVIDEO_TOKEN29: ${{ secrets.MINDVIDEO_TOKEN29 }}
-          MINDVIDEO_TOKEN30: ${{ secrets.MINDVIDEO_TOKEN30 }}
-          MINDVIDEO_TOKEN31: ${{ secrets.MINDVIDEO_TOKEN31 }}
-          MINDVIDEO_TOKEN32: ${{ secrets.MINDVIDEO_TOKEN32 }}
-          MINDVIDEO_TOKEN33: ${{ secrets.MINDVIDEO_TOKEN33 }}
-          MINDVIDEO_TOKEN34: ${{ secrets.MINDVIDEO_TOKEN34 }}
-          MINDVIDEO_TOKEN35: ${{ secrets.MINDVIDEO_TOKEN35 }}
-          MINDVIDEO_TOKEN36: ${{ secrets.MINDVIDEO_TOKEN36 }}
-          MINDVIDEO_TOKEN37: ${{ secrets.MINDVIDEO_TOKEN37 }}
-          MINDVIDEO_TOKEN38: ${{ secrets.MINDVIDEO_TOKEN38 }}
-          MINDVIDEO_TOKEN39: ${{ secrets.MINDVIDEO_TOKEN39 }}
-          MINDVIDEO_TOKEN40: ${{ secrets.MINDVIDEO_TOKEN40 }}
-          MINDVIDEO_TOKEN41: ${{ secrets.MINDVIDEO_TOKEN41 }}
-          MINDVIDEO_TOKEN42: ${{ secrets.MINDVIDEO_TOKEN42 }}
-          MINDVIDEO_TOKEN43: ${{ secrets.MINDVIDEO_TOKEN43 }}
-          MINDVIDEO_TOKEN44: ${{ secrets.MINDVIDEO_TOKEN44 }}
-          MINDVIDEO_TOKEN45: ${{ secrets.MINDVIDEO_TOKEN45 }}
-          MINDVIDEO_TOKEN46: ${{ secrets.MINDVIDEO_TOKEN46 }}
-          MINDVIDEO_TOKEN47: ${{ secrets.MINDVIDEO_TOKEN47 }}
-          MINDVIDEO_TOKEN48: ${{ secrets.MINDVIDEO_TOKEN48 }}
-          MINDVIDEO_TOKEN49: ${{ secrets.MINDVIDEO_TOKEN49 }}
-          MINDVIDEO_TOKEN50: ${{ secrets.MINDVIDEO_TOKEN50 }}
-          MINDVIDEO_TOKEN51: ${{ secrets.MINDVIDEO_TOKEN51 }}
-          MINDVIDEO_TOKEN52: ${{ secrets.MINDVIDEO_TOKEN52 }}
-          MINDVIDEO_TOKEN53: ${{ secrets.MINDVIDEO_TOKEN53 }}
-          MINDVIDEO_TOKEN54: ${{ secrets.MINDVIDEO_TOKEN54 }}
-          MINDVIDEO_TOKEN55: ${{ secrets.MINDVIDEO_TOKEN55 }}
-          MINDVIDEO_TOKEN56: ${{ secrets.MINDVIDEO_TOKEN56 }}
-          MINDVIDEO_TOKEN57: ${{ secrets.MINDVIDEO_TOKEN57 }}
-          MINDVIDEO_TOKEN58: ${{ secrets.MINDVIDEO_TOKEN58 }}
-          MINDVIDEO_TOKEN59: ${{ secrets.MINDVIDEO_TOKEN59 }}
-          MINDVIDEO_TOKEN60: ${{ secrets.MINDVIDEO_TOKEN60 }}
-          MINDVIDEO_TOKEN61: ${{ secrets.MINDVIDEO_TOKEN61 }}
-          MINDVIDEO_TOKEN62: ${{ secrets.MINDVIDEO_TOKEN62 }}
-          MINDVIDEO_TOKEN63: ${{ secrets.MINDVIDEO_TOKEN63 }}
-          MINDVIDEO_TOKEN64: ${{ secrets.MINDVIDEO_TOKEN64 }}
-          MINDVIDEO_TOKEN65: ${{ secrets.MINDVIDEO_TOKEN65 }}
-          MINDVIDEO_TOKEN66: ${{ secrets.MINDVIDEO_TOKEN66 }}
-          MINDVIDEO_TOKEN67: ${{ secrets.MINDVIDEO_TOKEN67 }}
-          MINDVIDEO_TOKEN68: ${{ secrets.MINDVIDEO_TOKEN68 }}
-          MINDVIDEO_TOKEN69: ${{ secrets.MINDVIDEO_TOKEN69 }}
-          MINDVIDEO_TOKEN70: ${{ secrets.MINDVIDEO_TOKEN70 }}
-          MINDVIDEO_TOKEN71: ${{ secrets.MINDVIDEO_TOKEN71 }}
-          MINDVIDEO_TOKEN72: ${{ secrets.MINDVIDEO_TOKEN72 }}
-          MINDVIDEO_TOKEN73: ${{ secrets.MINDVIDEO_TOKEN73 }}
-          MINDVIDEO_TOKEN74: ${{ secrets.MINDVIDEO_TOKEN74 }}
-          MINDVIDEO_TOKEN75: ${{ secrets.MINDVIDEO_TOKEN75 }}
-          MINDVIDEO_TOKEN76: ${{ secrets.MINDVIDEO_TOKEN76 }}
-          MINDVIDEO_TOKEN77: ${{ secrets.MINDVIDEO_TOKEN77 }}
-          MINDVIDEO_TOKEN78: ${{ secrets.MINDVIDEO_TOKEN78 }}
-          MINDVIDEO_TOKEN79: ${{ secrets.MINDVIDEO_TOKEN79 }}
-          MINDVIDEO_TOKEN80: ${{ secrets.MINDVIDEO_TOKEN80 }}
-          MINDVIDEO_TOKEN81: ${{ secrets.MINDVIDEO_TOKEN81 }}
-          MINDVIDEO_TOKEN82: ${{ secrets.MINDVIDEO_TOKEN82 }}
-          MINDVIDEO_TOKEN83: ${{ secrets.MINDVIDEO_TOKEN83 }}
-          MINDVIDEO_TOKEN84: ${{ secrets.MINDVIDEO_TOKEN84 }}
-          MINDVIDEO_TOKEN85: ${{ secrets.MINDVIDEO_TOKEN85 }}
-          MINDVIDEO_TOKEN86: ${{ secrets.MINDVIDEO_TOKEN86 }}
-          MINDVIDEO_TOKEN87: ${{ secrets.MINDVIDEO_TOKEN87 }}
-          MINDVIDEO_TOKEN88: ${{ secrets.MINDVIDEO_TOKEN88 }}
-          MINDVIDEO_TOKEN89: ${{ secrets.MINDVIDEO_TOKEN89 }}
-          MINDVIDEO_TOKEN90: ${{ secrets.MINDVIDEO_TOKEN90 }}
-          MINDVIDEO_TOKEN91: ${{ secrets.MINDVIDEO_TOKEN91 }}
-          MINDVIDEO_TOKEN92: ${{ secrets.MINDVIDEO_TOKEN92 }}
-          MINDVIDEO_TOKEN93: ${{ secrets.MINDVIDEO_TOKEN93 }}
-          MINDVIDEO_TOKEN94: ${{ secrets.MINDVIDEO_TOKEN94 }}
-          MINDVIDEO_TOKEN95: ${{ secrets.MINDVIDEO_TOKEN95 }}
-          MINDVIDEO_TOKEN96: ${{ secrets.MINDVIDEO_TOKEN96 }}
-          MINDVIDEO_TOKEN97: ${{ secrets.MINDVIDEO_TOKEN97 }}
-          MINDVIDEO_TOKEN98: ${{ secrets.MINDVIDEO_TOKEN98 }}
-          MINDVIDEO_TOKEN99: ${{ secrets.MINDVIDEO_TOKEN99 }}
-          MINDVIDEO_TOKEN100: ${{ secrets.MINDVIDEO_TOKEN100 }}
-          MINDVIDEO_TOKEN101: ${{ secrets.MINDVIDEO_TOKEN101 }}
-          MINDVIDEO_TOKEN102: ${{ secrets.MINDVIDEO_TOKEN102 }}
-          MINDVIDEO_TOKEN103: ${{ secrets.MINDVIDEO_TOKEN103 }}
-          MINDVIDEO_TOKEN104: ${{ secrets.MINDVIDEO_TOKEN104 }}
-          MINDVIDEO_TOKEN105: ${{ secrets.MINDVIDEO_TOKEN105 }}
-          MINDVIDEO_TOKEN106: ${{ secrets.MINDVIDEO_TOKEN106 }}
-          MINDVIDEO_TOKEN107: ${{ secrets.MINDVIDEO_TOKEN107 }}
-          MINDVIDEO_TOKEN108: ${{ secrets.MINDVIDEO_TOKEN108 }}
-          MINDVIDEO_TOKEN109: ${{ secrets.MINDVIDEO_TOKEN109 }}
-          MINDVIDEO_TOKEN110: ${{ secrets.MINDVIDEO_TOKEN110 }}
-          MINDVIDEO_TOKEN111: ${{ secrets.MINDVIDEO_TOKEN111 }}
-          MINDVIDEO_TOKEN112: ${{ secrets.MINDVIDEO_TOKEN112 }}
-          MINDVIDEO_TOKEN113: ${{ secrets.MINDVIDEO_TOKEN113 }}
-          MINDVIDEO_TOKEN114: ${{ secrets.MINDVIDEO_TOKEN114 }}
-          MINDVIDEO_TOKEN115: ${{ secrets.MINDVIDEO_TOKEN115 }}
           MINDVIDEO_LANG: zh-TW
         run: npm run checkin
