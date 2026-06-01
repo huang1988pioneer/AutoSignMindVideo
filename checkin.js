@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 const API_BASE = "https://api-app.mindvideo.ai";
 const APP_VERSION = "1.0.8";
@@ -76,6 +77,46 @@ async function refreshMindVideoToken(account) {
 
   account.token = nextToken;
   console.log(`[${account.name}] Refreshed expired token for this run.`);
+  await persistMindVideoToken(account.name, nextToken);
+}
+
+async function persistMindVideoToken(secretName, token) {
+  const ghToken = process.env.GH_SECRETS_TOKEN;
+  const repo = process.env.GITHUB_REPOSITORY;
+
+  if (!ghToken || !repo) {
+    console.warn(
+      `[${secretName}] Refreshed token was not persisted: missing GH_SECRETS_TOKEN or GITHUB_REPOSITORY.`
+    );
+    return;
+  }
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      "gh",
+      ["secret", "set", secretName, "--repo", repo, "--body-file", "-"],
+      {
+        env: { ...process.env, GH_TOKEN: ghToken },
+        stdio: ["pipe", "pipe", "pipe"],
+      }
+    );
+
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        console.log(`[${secretName}] Persisted refreshed token to GitHub secret.`);
+        resolve();
+        return;
+      }
+
+      reject(new Error(`gh secret set failed with exit code ${code}: ${stderr.trim()}`));
+    });
+    child.stdin.end(token);
+  });
 }
 
 async function callMindVideo(account, endpoint, options = {}) {
