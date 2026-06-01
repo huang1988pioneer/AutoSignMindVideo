@@ -47,13 +47,44 @@ function getTokens() {
   return tokens;
 }
 
-async function callMindVideo(token, endpoint, options = {}) {
+async function refreshMindVideoToken(account) {
+  const lang = process.env.MINDVIDEO_LANG || "zh-TW";
+
+  const response = await fetch(`${API_BASE}/api/refresh`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${account.token}`,
+      "i-lang": lang,
+      "i-version": APP_VERSION,
+      Accept: "application/json",
+    },
+  });
+
+  const text = await response.text();
+  let payload;
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch {
+    payload = { raw: text };
+  }
+
+  const nextToken = payload?.data?.access_token || payload?.access_token;
+  if (!response.ok || !nextToken) {
+    const message = payload?.message || response.statusText || "Token refresh failed";
+    throw new Error(`${response.status} ${message}`);
+  }
+
+  account.token = nextToken;
+  console.log(`[${account.name}] Refreshed expired token for this run.`);
+}
+
+async function callMindVideo(account, endpoint, options = {}) {
   const lang = process.env.MINDVIDEO_LANG || "zh-TW";
 
   const response = await fetch(`${API_BASE}/${endpoint.replace(/^\/+/, "")}`, {
     method: options.method || "GET",
     headers: {
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${account.token}`,
       "i-lang": lang,
       "i-version": APP_VERSION,
       Accept: "application/json",
@@ -71,6 +102,11 @@ async function callMindVideo(token, endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && options.refresh !== false) {
+      await refreshMindVideoToken(account);
+      return callMindVideo(account, endpoint, { ...options, refresh: false });
+    }
+
     const message = payload?.message || response.statusText || "Request failed";
     throw new Error(`${response.status} ${message}`);
   }
@@ -126,7 +162,7 @@ function summarizeCreditStats(stats) {
 
 async function logCreditStats(account) {
   try {
-    const stats = await callMindVideo(account.token, "api/user/credits/stats");
+    const stats = await callMindVideo(account, "api/user/credits/stats");
     console.log(`[${account.name}] Credit stats: ${summarizeCreditStats(stats.data ?? stats)}`);
   } catch (error) {
     console.warn(`[${account.name}] Credit stats unavailable: ${error.message}`);
@@ -135,7 +171,7 @@ async function logCreditStats(account) {
 
 async function checkinAccount(account) {
   console.log(`[${account.name}] Checking sign-in status...`);
-  const before = await callMindVideo(account.token, "api/checkin/records");
+  const before = await callMindVideo(account, "api/checkin/records");
   const record = before.data;
   console.log(`[${account.name}] Status: ${summarizeRecord(record)}`);
   await logCreditStats(account);
@@ -145,8 +181,8 @@ async function checkinAccount(account) {
     return;
   }
 
-  await callMindVideo(account.token, "api/checkin", { method: "POST" });
-  const after = await callMindVideo(account.token, "api/checkin/records");
+  await callMindVideo(account, "api/checkin", { method: "POST" });
+  const after = await callMindVideo(account, "api/checkin/records");
   console.log(`[${account.name}] Check-in successful: ${summarizeRecord(after.data)}`);
   await logCreditStats(account);
 }
