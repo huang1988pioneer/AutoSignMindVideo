@@ -23,6 +23,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN1: ${{ secrets.MINDVIDEO_TOKEN1 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-2:
@@ -39,6 +40,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-3:
@@ -55,6 +57,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-4:
@@ -71,6 +74,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN4: ${{ secrets.MINDVIDEO_TOKEN4 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-5:
@@ -87,6 +91,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN5: ${{ secrets.MINDVIDEO_TOKEN5 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-6:
@@ -103,6 +108,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN6: ${{ secrets.MINDVIDEO_TOKEN6 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-7:
@@ -119,6 +125,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN7: ${{ secrets.MINDVIDEO_TOKEN7 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-8:
@@ -135,6 +142,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN8: ${{ secrets.MINDVIDEO_TOKEN8 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-9:
@@ -151,6 +159,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN9: ${{ secrets.MINDVIDEO_TOKEN9 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-10:
@@ -167,6 +176,7 @@ jobs:
         env:
           MINDVIDEO_TOKEN10: ${{ secrets.MINDVIDEO_TOKEN10 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
 
   checkin-token-11:
@@ -183,4 +193,5 @@ jobs:
         env:
           MINDVIDEO_TOKEN11: ${{ secrets.MINDVIDEO_TOKEN11 }}
           MINDVIDEO_LANG: zh-TW
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
         run: npm run checkin
