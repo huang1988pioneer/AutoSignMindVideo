@@ -39,8 +39,7 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-checkin.yml` runs:
 
-- `MINDVIDEO_TOKEN1` every day at 05:07 Asia/Taipei.
-- `MINDVIDEO_TOKEN2` every day at 05:14 Asia/Taipei.
+- Runs every day at 05:07 and 17:07 Asia/Taipei. It supports up to `MINDVIDEO_TOKEN33` in the same run.
 
 Add this repository secret before enabling it:
 
