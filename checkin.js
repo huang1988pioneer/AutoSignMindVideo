@@ -94,7 +94,7 @@ async function persistMindVideoToken(secretName, token) {
   await new Promise((resolve, reject) => {
     const child = spawn(
       "gh",
-      ["secret", "set", secretName, "--repo", repo, "--body-file", "-"],
+      ["secret", "set", secretName, "--repo", repo],
       {
         env: { ...process.env, GH_TOKEN: ghToken },
         stdio: ["pipe", "pipe", "pipe"],
