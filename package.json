@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "checkin": "node checkin.js"
+    "checkin": "node checkin.js",
+    "capture:tokens": "node scripts/capture-mindvideo-tokens.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
   },
   "engines": {
     "node": ">=18"
