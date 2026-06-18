@@ -33,6 +33,31 @@ Run accounts sequentially instead of in parallel.
 Account isolation is more important than opening many Playwright browsers. To
 reduce account lock risk, avoid large concurrent login or check-in bursts.
 
+The local token capture helper implements this strategy:
+
+```sh
+npm install
+npm run capture:tokens -- --accounts 12,13,14
+```
+
+For a range of accounts:
+
+```sh
+npm run capture:tokens -- --start 12 --end 20
+```
+
+The helper opens one shared Playwright browser and creates a fresh isolated
+browser context for each account. Log in manually in the opened browser window,
+then press Enter in the terminal to capture that account's token. Captured
+tokens are written to `.env.captured`, which is ignored by git.
+
+To write captured tokens directly to GitHub Actions secrets, make sure `gh` is
+authenticated and run:
+
+```sh
+npm run capture:tokens -- --start 12 --end 20 --update-secrets
+```
+
 ## Daily macOS Schedule
 
 After `.env` is filled and a manual run works:
