@@ -48,7 +48,7 @@ jobs:
         run: npm run checkin
 
   checkin-token-3:
-    name: checkin-token-3 fengtyprinfo
+    name: checkin-token-3 fengtuprinfo
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '8 21 * * *' || github.event.schedule == '8 3 * * *' || github.event.schedule == '8 9 * * *' || github.event.schedule == '8 15 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
