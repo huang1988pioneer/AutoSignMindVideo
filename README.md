@@ -24,6 +24,15 @@ Required headers:
 - `i-lang: zh-TW`
 - `i-version: 1.0.8`
 
+## Multi-account Browser Strategy
+
+If browser automation is needed for token capture or recovery, use one shared
+Playwright browser process with a separate browser context for each account.
+Run accounts sequentially instead of in parallel.
+
+Account isolation is more important than opening many Playwright browsers. To
+reduce account lock risk, avoid large concurrent login or check-in bursts.
+
 ## Daily macOS Schedule
 
 After `.env` is filled and a manual run works:
@@ -39,7 +48,8 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-checkin.yml` runs:
 
-- Runs every day at 05:07 and 17:07 Asia/Taipei. It supports up to `MINDVIDEO_TOKEN33` in the same run.
+- `MINDVIDEO_TOKEN1` every day at 05:07 Asia/Taipei.
+- `MINDVIDEO_TOKEN2` every day at 05:14 Asia/Taipei.
 
 Add this repository secret before enabling it:
 
