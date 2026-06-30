@@ -71,21 +71,30 @@ The included schedule runs every day at 09:05.
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/mindvideo-checkin.yml` runs:
+The workflow in `.github/workflows/mindvideo-checkin.yml` runs 33 isolated
+GitHub Actions matrix jobs on each schedule:
 
-- `MINDVIDEO_TOKEN1` every day at 05:07 Asia/Taipei.
-- `MINDVIDEO_TOKEN2` every day at 05:14 Asia/Taipei.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 05:08 Asia/Taipei.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 11:08 Asia/Taipei.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 17:08 Asia/Taipei.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 23:08 Asia/Taipei.
 
-Add this repository secret before enabling it:
+Each job reads only its own token secret. Empty or missing token secrets are
+reported as skipped, so you can add accounts gradually.
+
+Add repository secrets before enabling the matching accounts:
 
 ```text
 MINDVIDEO_TOKEN1
+MINDVIDEO_TOKEN2
+...
+MINDVIDEO_TOKEN33
 ```
 
-For the second MindVideo account, add another repository secret:
+If token refresh persistence is needed, also add:
 
 ```text
-MINDVIDEO_TOKEN2
+GH_SECRETS_TOKEN
 ```
 
 You can also run it manually from the repository's Actions tab.

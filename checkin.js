@@ -30,6 +30,21 @@ function loadEnvFile(filePath) {
 }
 
 function getTokens() {
+  const matrixSecretName = process.env.MINDVIDEO_SECRET_NAME?.trim();
+  const matrixToken = process.env.MINDVIDEO_TOKEN?.trim();
+
+  if (matrixSecretName || matrixToken) {
+    if (!/^MINDVIDEO_TOKEN\d+$/.test(matrixSecretName || "")) {
+      throw new Error("MINDVIDEO_SECRET_NAME must look like MINDVIDEO_TOKEN1.");
+    }
+
+    if (!matrixToken) {
+      return [];
+    }
+
+    return [{ name: matrixSecretName, token: matrixToken }];
+  }
+
   const tokens = Object.entries(process.env)
     .filter(([key, value]) => /^MINDVIDEO_TOKEN\d+$/.test(key) && value?.trim())
     .sort(([a], [b]) => {
