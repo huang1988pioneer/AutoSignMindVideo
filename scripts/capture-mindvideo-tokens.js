@@ -3,7 +3,7 @@ import fs from "node:fs";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
-const DEFAULT_REPO = "huang1988pioneer/MindVideoAutoSign";
+const DEFAULT_REPO = "huang1988pioneer/AutoSignMindVideo";
 const DEFAULT_URL = "https://mindvideo.ai/zh/creative-studio/";
 
 const DEFAULT_ACCOUNTS = [
@@ -27,6 +27,10 @@ const DEFAULT_ACCOUNTS = [
   [18, "fbussinesseng"],
   [19, "engdictatorf"],
   [20, "flottojackpoteng"],
+  ...Array.from({ length: 13 }, (_, index) => {
+    const number = index + 21;
+    return [number, `account-${number}`];
+  }),
 ];
 
 function parseArgs() {
@@ -90,7 +94,7 @@ function printHelp() {
 Usage:
   npm run capture:tokens
   npm run capture:tokens -- --accounts 12,13,14
-  npm run capture:tokens -- --start 12 --end 20 --update-secrets
+  npm run capture:tokens -- --start 21 --end 33 --update-secrets
 
 Options:
   --accounts 1,2       Capture only listed token numbers.
@@ -119,38 +123,47 @@ function accountList(numbers) {
   }));
 }
 
-async function captureAccountToken(browser, account, options, rl) {
+async function captureAccountToken(chromium, account, options, rl) {
   console.log(`\n[${account.secretName}] ${account.label}`);
-  console.log("Opening an isolated browser context for this account.");
+  console.log("Opening an isolated Playwright browser for this account.");
 
-  const context = await browser.newContext({
-    viewport: { width: 1365, height: 900 },
-    locale: "zh-TW",
-  });
+  const browser = await chromium.launch({ headless: false });
+  let context;
 
-  let authorizationToken = null;
-  context.on("request", (request) => {
-    const authorization = request.headers().authorization || "";
-    if (authorization.toLowerCase().startsWith("bearer ")) {
-      authorizationToken = authorization.slice("bearer ".length).trim();
+  try {
+    context = await browser.newContext({
+      viewport: { width: 1365, height: 900 },
+      locale: "zh-TW",
+    });
+
+    let authorizationToken = null;
+    context.on("request", (request) => {
+      const authorization = request.headers().authorization || "";
+      if (authorization.toLowerCase().startsWith("bearer ")) {
+        authorizationToken = authorization.slice("bearer ".length).trim();
+      }
+    });
+
+    const page = await context.newPage();
+    await page.goto(options.url, { waitUntil: "domcontentloaded" });
+
+    console.log("Log in manually in the opened browser window.");
+    await rl.question("After this account is logged in, press Enter here to capture its token...");
+
+    const token = authorizationToken || (await waitForStoredToken(page, 60000));
+    await context.close();
+    context = null;
+
+    if (!token) {
+      throw new Error(`Could not find a token for ${account.secretName}.`);
     }
-  });
 
-  const page = await context.newPage();
-  await page.goto(options.url, { waitUntil: "domcontentloaded" });
-
-  console.log("Log in manually in the opened browser window.");
-  await rl.question("After this account is logged in, press Enter here to capture its token...");
-
-  const token = authorizationToken || (await waitForStoredToken(page, 60000));
-  await context.close();
-
-  if (!token) {
-    throw new Error(`Could not find a token for ${account.secretName}.`);
+    console.log(`[${account.secretName}] Captured token ${maskToken(token)}.`);
+    return token;
+  } finally {
+    if (context) await context.close();
+    await browser.close();
   }
-
-  console.log(`[${account.secretName}] Captured token ${maskToken(token)}.`);
-  return token;
 }
 
 async function waitForStoredToken(page, timeoutMs) {
@@ -260,10 +273,9 @@ async function main() {
   const captured = [];
   const rl = readline.createInterface({ input, output });
 
-  const browser = await chromium.launch({ headless: false });
   try {
     for (const account of accounts) {
-      const token = await captureAccountToken(browser, account, options, rl);
+      const token = await captureAccountToken(chromium, account, options, rl);
       captured.push({ account, token });
 
       if (options.updateSecrets) {
@@ -272,7 +284,6 @@ async function main() {
       }
     }
   } finally {
-    await browser.close();
     rl.close();
   }
 
