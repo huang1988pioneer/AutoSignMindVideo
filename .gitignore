@@ -1,4 +1,5 @@
 .env
 .env.captured
 logs/
+artifacts/
 .DS_Store

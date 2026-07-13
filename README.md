@@ -17,12 +17,23 @@ npm run checkin
 
 - `GET https://api-app.mindvideo.ai/api/checkin/records`
 - `POST https://api-app.mindvideo.ai/api/checkin`
+- `GET https://api-app.mindvideo.ai/api/user/credits/stats` (logging / verification)
 
 Required headers:
 
 - `Authorization: Bearer <token>`
 - `i-lang: zh-TW`
 - `i-version: 1.0.8`
+
+## Reliability notes
+
+The check-in script is deliberately strict about rewards:
+
+- Missing / unknown `can_checkin_today` is **not** treated as "already checked in". The script attempts check-in so accounts do not silently skip rewards.
+- After `POST /api/checkin`, it re-reads records (with short polling) and requires the day status to settle to "already checked in".
+- If the account was eligible for a daily reward but `total_credits` does not increase, the run fails for that account so Actions shows red instead of a false success.
+- Transient errors (`429`, `5xx`, network/timeouts) are retried with backoff.
+- GitHub Actions matrix jobs are staggered and limited with `max-parallel` to reduce burst rate-limits across many accounts.
 
 ## Multi-account Browser Strategy
 
@@ -81,6 +92,22 @@ GitHub Actions matrix jobs on each schedule:
 
 Each job reads only its own token secret. Empty or missing token secrets are
 reported as skipped, so you can add accounts gradually.
+
+### Daily summary job
+
+After all matrix check-in jobs finish, a `daily-summary` job:
+
+1. Downloads every account's `checkin-result-*.json` artifact
+2. Builds one combined markdown/JSON report
+3. Writes the table into the workflow **Job Summary**
+4. Uploads `checkin-daily-summary` artifact (`checkin-daily-summary.md` + `.json`)
+5. Fails the summary job if any account status is `failed`
+
+Locally you can rebuild a summary from a folder of result JSON files:
+
+```sh
+npm run summary -- path/to/collected-results
+```
 
 Add repository secrets before enabling the matching accounts:
 

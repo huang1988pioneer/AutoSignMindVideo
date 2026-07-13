@@ -17,9 +17,11 @@ jobs:
     name: checkin-token-${{ matrix.account }}
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '8 21 * * *' || github.event.schedule == '8 3 * * *' || github.event.schedule == '8 9 * * *' || github.event.schedule == '8 15 * * *'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     strategy:
       fail-fast: false
+      # Cap burst size so MindVideo is less likely to rate-limit parallel jobs.
+      max-parallel: 8
       matrix:
         account:
           - 1
@@ -62,13 +64,114 @@ jobs:
           node-version: "22"
       - name: Run MindVideo check-in
         env:
+          MINDVIDEO_ACCOUNT: ${{ matrix.account }}
           MINDVIDEO_SECRET_NAME: MINDVIDEO_TOKEN${{ matrix.account }}
           MINDVIDEO_TOKEN: ${{ secrets[format('MINDVIDEO_TOKEN{0}', matrix.account)] }}
           MINDVIDEO_LANG: zh-TW
+          MINDVIDEO_RESULT_DIR: artifacts
           GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
+          # Spread matrix starts: base offset by account + small random jitter.
+          MINDVIDEO_STAGGER_MS: ${{ matrix.account * 2500 }}
         run: |
+          mkdir -p artifacts
+
           if [ -z "$MINDVIDEO_TOKEN" ]; then
-            echo "$MINDVIDEO_SECRET_NAME is not configured; skipping."
+            echo "$MINDVIDEO_SECRET_NAME is not configured; writing skipped result."
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const account = Number(process.env.MINDVIDEO_ACCOUNT);
+          const row = {
+            account,
+            name: process.env.MINDVIDEO_SECRET_NAME,
+            status: "skipped",
+            message: "token not configured",
+            creditsDelta: null,
+            totalCredits: null,
+            streak: null,
+            dailyReward: null,
+            finishedAt: new Date().toISOString(),
+            runId: process.env.GITHUB_RUN_ID || null,
+            job: process.env.GITHUB_JOB || null,
+          };
+          fs.mkdirSync("artifacts", { recursive: true });
+          fs.writeFileSync("artifacts/checkin-result.json", `${JSON.stringify(row, null, 2)}\n`);
+          NODE
             exit 0
           fi
+
+          # Extra jitter so jobs that share the same account slot offset still desync a bit.
+          extra=$((RANDOM % 4000))
+          echo "Additional jitter: ${extra}ms"
+          export MINDVIDEO_STAGGER_MS=$((MINDVIDEO_STAGGER_MS + extra))
+
+          # Always keep a result artifact even when check-in exits non-zero.
+          set +e
           npm run checkin
+          code=$?
+          set -e
+
+          if [ ! -f artifacts/checkin-result.json ]; then
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const account = Number(process.env.MINDVIDEO_ACCOUNT);
+          const row = {
+            account,
+            name: process.env.MINDVIDEO_SECRET_NAME,
+            status: "failed",
+            message: "check-in exited without writing result artifact",
+            creditsDelta: null,
+            totalCredits: null,
+            streak: null,
+            dailyReward: null,
+            finishedAt: new Date().toISOString(),
+            runId: process.env.GITHUB_RUN_ID || null,
+            job: process.env.GITHUB_JOB || null,
+          };
+          fs.mkdirSync("artifacts", { recursive: true });
+          fs.writeFileSync("artifacts/checkin-result.json", `${JSON.stringify(row, null, 2)}\n`);
+          NODE
+          fi
+
+          exit $code
+      - name: Upload account result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkin-result-${{ matrix.account }}
+          path: artifacts/checkin-result.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  daily-summary:
+    name: daily-summary
+    needs: checkin
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Download all account results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: checkin-result-*
+          path: collected
+          merge-multiple: false
+      - name: Build daily summary
+        env:
+          MINDVIDEO_SUMMARY_DIR: artifacts
+          MINDVIDEO_EXPECTED_ACCOUNTS: "33"
+        run: |
+          npm run summary -- collected
+      - name: Upload daily summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkin-daily-summary
+          path: |
+            artifacts/checkin-daily-summary.md
+            artifacts/checkin-daily-summary.json
+          if-no-files-found: warn
+          retention-days: 30
