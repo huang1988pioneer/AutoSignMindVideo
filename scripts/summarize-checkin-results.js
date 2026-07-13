@@ -76,20 +76,72 @@ function loadRows(rootDir) {
 }
 
 function fmtDelta(value) {
-  if (value === null || value === undefined) return "n/a";
+  if (value === null || value === undefined) return "—";
   const num = Number(value);
-  if (!Number.isFinite(num)) return "n/a";
+  if (!Number.isFinite(num)) return "—";
   return num > 0 ? `+${num}` : String(num);
 }
 
 function fmtNum(value) {
-  if (value === null || value === undefined) return "n/a";
+  if (value === null || value === undefined) return "—";
   const num = Number(value);
-  return Number.isFinite(num) ? String(num) : "n/a";
+  return Number.isFinite(num) ? String(num) : "—";
 }
 
 function escapeCell(value) {
   return String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
+function shortLabel(name) {
+  return String(name || "")
+    .replace(/^MINDVIDEO_TOKEN/i, "token")
+    .replace(/\s*\(\d+\)\s*$/, "")
+    .trim();
+}
+
+function compactMessage(message, max = 120) {
+  const text = String(message || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return "—";
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}…`;
+}
+
+function statusBadge(status) {
+  switch (status) {
+    case "checked_in":
+      return "✅ checked_in";
+    case "already_done":
+      return "☑️ already_done";
+    case "failed":
+      return "❌ failed";
+    case "skipped":
+      return "⏭️ skipped";
+    default:
+      return `❔ ${status || "unknown"}`;
+  }
+}
+
+function noteForRow(row) {
+  if (row.status === "checked_in") {
+    const delta = Number(row.creditsDelta);
+    if (Number.isFinite(delta) && delta > 0) return `new today (+${delta})`;
+    return "new today";
+  }
+  if (row.status === "already_done") return "claimed earlier";
+  if (row.status === "skipped") return compactMessage(row.message || "token not configured", 80);
+  if (row.status === "failed") return compactMessage(row.message || "failed", 80);
+  return compactMessage(row.message, 80);
+}
+
+function rewardForRow(row) {
+  // Prefer actual credits gained this run; fall back to daily reward tier.
+  const delta = Number(row.creditsDelta);
+  if (Number.isFinite(delta) && delta > 0) return `+${delta}`;
+  const daily = Number(row.dailyReward);
+  if (Number.isFinite(daily) && daily > 0) return `+${daily}`;
+  return "—";
 }
 
 function buildMarkdown(rows, meta = {}) {
@@ -101,70 +153,140 @@ function buildMarkdown(rows, meta = {}) {
     failed: rows.filter((r) => r.status === "failed").length,
   };
 
+  const configured = counts.checked_in + counts.already_done + counts.failed;
+  const ok = counts.checked_in + counts.already_done;
+
   const gained = rows.reduce((sum, row) => {
     const delta = Number(row.creditsDelta);
     return Number.isFinite(delta) && delta > 0 ? sum + delta : sum;
   }, 0);
 
   const generatedAt = meta.generatedAt || new Date().toISOString();
-  const title = meta.title || "MindVideo daily check-in summary";
+  const title = meta.title || "MindVideo daily check-in";
+
+  const accountNums = rows
+    .map((r) => r.account)
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => a - b);
+  const accountMin = accountNums[0] ?? 1;
+  const accountMax = accountNums[accountNums.length - 1] ?? counts.total;
+
+  const headline =
+    counts.failed === 0 && configured > 0
+      ? "✅ All configured accounts OK"
+      : counts.failed > 0
+        ? `⚠️ ${counts.failed} account(s) need attention`
+        : "⚠️ No configured accounts";
 
   const lines = [
-    `# ${title}`,
+    `## ${title}`,
     "",
-    `- Generated at: \`${generatedAt}\``,
+    `**${headline}**`,
+    "",
+    "| Metric | Count |",
+    "| --- | ---: |",
+    `| Configured (ran) | ${configured} |`,
+    `| New check-in | ${counts.checked_in} |`,
+    `| Already done | ${counts.already_done} |`,
+    `| OK total | ${ok} |`,
+    `| Failed | ${counts.failed} |`,
+    `| Skipped (no secret) | ${counts.skipped} |`,
+    `| Credits gained this run | +${gained} |`,
+    "",
     meta.runUrl ? `- Workflow run: ${meta.runUrl}` : null,
-    `- Accounts reported: **${counts.total}**`,
-    `- checked_in: **${counts.checked_in}** | already_done: **${counts.already_done}** | skipped: **${counts.skipped}** | failed: **${counts.failed}**`,
-    `- Total credits gained this run: **+${gained}**`,
-    "",
-    `| # | Account | Status | Credit delta | Total | Streak | Daily reward | Detail |`,
-    `| ---: | --- | --- | ---: | ---: | ---: | ---: | --- |`,
-    ...rows.map((row) => {
-      const no = row.account ?? "-";
-      return `| ${no} | ${escapeCell(row.name)} | ${escapeCell(row.status)} | ${fmtDelta(
-        row.creditsDelta
-      )} | ${fmtNum(row.totalCredits)} | ${fmtNum(row.streak)} | ${fmtNum(
-        row.dailyReward
-      )} | ${escapeCell(row.message)} |`;
-    }),
+    `<sub>Accounts ${accountMin}–${accountMax} · ${generatedAt}</sub>`,
     "",
   ].filter((line) => line !== null);
 
   const failedRows = rows
     .filter((r) => r.status === "failed")
-    .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9));
+    .sort((a, b) => (a.account ?? 9999) - (b.account ?? 9999));
 
   if (failedRows.length > 0) {
-    lines.push("## Failed accounts", "");
+    lines.push("### ⚠️ Needs attention", "");
+    lines.push("| # | Account | Error |");
+    lines.push("| ---: | --- | --- |");
     for (const row of failedRows) {
-      lines.push(`- **${row.name}**: ${escapeCell(row.message)}`);
+      const no = row.account ?? "—";
+      lines.push(
+        `| ${no} | ${escapeCell(shortLabel(row.name))} | ${escapeCell(
+          compactMessage(row.message || "failed", 160)
+        )} |`
+      );
     }
     lines.push("");
   }
 
-  const noCreditGain = rows.filter(
+  const activeRows = rows.filter((r) => r.status !== "skipped");
+  if (activeRows.length > 0) {
+    lines.push("### Account results", "");
+    lines.push("| # | Account | Status | Reward | Total | Streak | Note |");
+    lines.push("| ---: | --- | --- | ---: | ---: | ---: | --- |");
+
+    for (const row of activeRows) {
+      const no = row.account ?? "—";
+      lines.push(
+        `| ${no} | ${escapeCell(shortLabel(row.name))} | ${statusBadge(
+          row.status
+        )} | ${rewardForRow(row)} | ${fmtNum(row.totalCredits)} | ${fmtNum(
+          row.streak
+        )} | ${escapeCell(noteForRow(row))} |`
+      );
+    }
+    lines.push("");
+  }
+
+  const skippedRows = rows
+    .filter((r) => r.status === "skipped")
+    .sort((a, b) => (a.account ?? 9999) - (b.account ?? 9999));
+
+  if (skippedRows.length > 0) {
+    const ids = skippedRows.map((r) => r.account ?? shortLabel(r.name)).join(", ");
+    lines.push("### Skipped", "");
+    lines.push(`No secret / token: **#${ids}**`, "");
+  }
+
+  if (configured === 0) {
+    lines.push(
+      "### Next step",
+      "",
+      "Add GitHub Secrets `MINDVIDEO_TOKEN1` … `MINDVIDEO_TOKEN33` (or local `.env`) before the next run.",
+      ""
+    );
+  }
+
+  const zeroGain = rows.filter(
     (r) => r.status === "checked_in" && Number(r.creditsDelta) === 0
   );
-  if (noCreditGain.length > 0) {
-    lines.push("## Checked in with zero credit delta", "");
-    for (const row of noCreditGain) {
-      lines.push(`- **${row.name}**: ${escapeCell(row.message || "delta 0")}`);
+  if (zeroGain.length > 0) {
+    lines.push("### Checked in with zero credit delta", "");
+    for (const row of zeroGain) {
+      lines.push(`- **${escapeCell(shortLabel(row.name))}**: ${escapeCell(row.message || "delta 0")}`);
     }
     lines.push("");
   }
 
-  return { markdown: `${lines.join("\n")}\n`, counts, gained };
+  lines.push(
+    "---",
+    "",
+    "<sub>Status: `checked_in` = claimed this run · `already_done` = already claimed today · `failed` = token/API issue · `skipped` = secret not configured</sub>",
+    ""
+  );
+
+  return { markdown: `${lines.join("\n")}\n`, counts, gained, configured, ok };
 }
 
 function printConsoleTable(rows, counts, gained) {
+  const configured = counts.checked_in + counts.already_done + counts.failed;
   console.log("\n========== Daily check-in summary ==========");
   console.log(
-    `Total: ${counts.total} | checked_in: ${counts.checked_in} | already_done: ${counts.already_done} | skipped: ${counts.skipped} | failed: ${counts.failed} | gained: +${gained}`
+    `Configured: ${configured} | checked_in: ${counts.checked_in} | already_done: ${counts.already_done} | skipped: ${counts.skipped} | failed: ${counts.failed} | gained: +${gained}`
   );
   for (const row of rows) {
     console.log(
-      `- #${row.account ?? "?"} ${row.name}: ${row.status} | Δ ${fmtDelta(row.creditsDelta)} | total ${fmtNum(row.totalCredits)} | ${row.message}`
+      `- #${row.account ?? "?"} ${shortLabel(row.name)}: ${row.status} | Δ ${fmtDelta(
+        row.creditsDelta
+      )} | total ${fmtNum(row.totalCredits)} | ${noteForRow(row)}`
     );
   }
   console.log("============================================\n");
@@ -183,7 +305,7 @@ function main() {
     if (process.env.GITHUB_STEP_SUMMARY) {
       fs.appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
-        `# MindVideo daily check-in summary\n\n❌ ${message}\n`,
+        `## MindVideo daily check-in\n\n❌ ${message}\n`,
         "utf8"
       );
     }
@@ -198,12 +320,17 @@ function main() {
     repository && runId ? `${serverUrl}/${repository}/actions/runs/${runId}` : null;
 
   const { markdown, counts, gained } = buildMarkdown(rows, {
-    title: "MindVideo daily check-in summary",
+    title: "MindVideo daily check-in",
     generatedAt: new Date().toISOString(),
     runUrl,
   });
 
   printConsoleTable(rows, counts, gained);
+
+  // Always print markdown block for log searchability (matches LitMedia style).
+  console.log("----- GITHUB SUMMARY (markdown) -----");
+  console.log(markdown);
+  console.log("----- END GITHUB SUMMARY -----");
 
   fs.mkdirSync(outDir, { recursive: true });
   const mdPath = path.join(outDir, "checkin-daily-summary.md");

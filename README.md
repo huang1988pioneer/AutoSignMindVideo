@@ -95,12 +95,17 @@ reported as skipped, so you can add accounts gradually.
 
 ### Daily summary job
 
-After all matrix check-in jobs finish, a `daily-summary` job:
+After all matrix check-in jobs finish, a `daily-summary` job (same style as
+[AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo)):
 
 1. Downloads every account's `checkin-result-*.json` artifact
-2. Builds one combined markdown/JSON report
-3. Writes the table into the workflow **Job Summary**
-4. Uploads `checkin-daily-summary` artifact (`checkin-daily-summary.md` + `.json`)
+2. Builds one combined markdown/JSON report with:
+   - Headline (`✅ All configured accounts OK` / `⚠️ N need attention`)
+   - Metric table (new check-in / already done / failed / skipped / credits gained)
+   - Per-account table (status badge, reward tier, total credits, streak, note)
+   - Skipped account list (`#21, 22, …`)
+3. Writes the report into the workflow **Job Summary** (visible on the run page)
+4. Uploads `mindvideo-checkin-report` artifact (`checkin-daily-summary.md` + `.json`)
 5. Fails the summary job if any account status is `failed`
 
 Locally you can rebuild a summary from a folder of result JSON files:

@@ -608,7 +608,9 @@ function printSummary(results) {
   }
   console.log("======================================\n");
 
-  if (process.env.GITHUB_STEP_SUMMARY) {
+  // Matrix jobs skip Job Summary on purpose — the daily-summary job writes one
+  // LitMedia-style combined report for the whole workflow run.
+  if (process.env.GITHUB_STEP_SUMMARY && !process.env.MINDVIDEO_SECRET_NAME) {
     const lines = [
       "## MindVideo check-in summary",
       "",

@@ -158,17 +158,25 @@ jobs:
           pattern: checkin-result-*
           path: collected
           merge-multiple: false
-      - name: Build daily summary
+      - name: Build daily summary (Job Summary)
         env:
           MINDVIDEO_SUMMARY_DIR: artifacts
           MINDVIDEO_EXPECTED_ACCOUNTS: "33"
         run: |
+          # Writes LitMedia-style markdown to GITHUB_STEP_SUMMARY + artifacts/
           npm run summary -- collected
+          echo "----- preview -----"
+          if [ -f artifacts/checkin-daily-summary.md ]; then
+            cat artifacts/checkin-daily-summary.md
+          else
+            echo "summary markdown missing"
+            exit 1
+          fi
       - name: Upload daily summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: checkin-daily-summary
+          name: mindvideo-checkin-report
           path: |
             artifacts/checkin-daily-summary.md
             artifacts/checkin-daily-summary.json
