@@ -82,7 +82,7 @@ The included schedule runs every day at 09:05.
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/mindvideo-checkin.yml` runs 33 isolated
+The workflow in `.github/workflows/mindvideo-daily-checkin.yml` runs 33 isolated
 GitHub Actions matrix jobs on each schedule:
 
 - `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 05:08 Asia/Taipei.
