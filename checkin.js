@@ -10,8 +10,43 @@ const BASE_RETRY_DELAY_MS = 1_200;
 const VERIFY_POLLS = 4;
 const VERIFY_DELAY_MS = 1_500;
 
+const ACCOUNT_LABELS = loadAccountLabels();
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function loadAccountLabels() {
+  try {
+    const filePath = path.join(process.cwd(), "accounts.json");
+    if (!fs.existsSync(filePath)) return {};
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function accountNumberFromSecretName(name) {
+  const match = String(name || "").match(/MINDVIDEO_TOKEN(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function resolveAccountLabel(secretName, accountNumber) {
+  const fromEnv = process.env.MINDVIDEO_ACCOUNT_LABEL?.trim();
+  if (fromEnv) return fromEnv;
+
+  const number =
+    accountNumber ??
+    accountNumberFromSecretName(secretName) ??
+    Number(process.env.MINDVIDEO_ACCOUNT);
+
+  if (!Number.isFinite(number) || number <= 0) return null;
+  return ACCOUNT_LABELS[String(number)] || ACCOUNT_LABELS[number] || null;
+}
+
+function formatAccountTag(secretName, label) {
+  return label ? `${secretName}/${label}` : secretName;
 }
 
 function loadEnvFile(filePath) {
@@ -51,7 +86,13 @@ function getTokens() {
       return [];
     }
 
-    return [{ name: matrixSecretName, token: matrixToken }];
+    return [
+      {
+        name: matrixSecretName,
+        token: matrixToken,
+        label: resolveAccountLabel(matrixSecretName),
+      },
+    ];
   }
 
   const tokens = Object.entries(process.env)
@@ -61,7 +102,11 @@ function getTokens() {
         Number(key.replace("MINDVIDEO_TOKEN", "")) || Number.MAX_SAFE_INTEGER;
       return tokenNumber(a) - tokenNumber(b);
     })
-    .map(([key, value]) => ({ name: key, token: value.trim() }));
+    .map(([key, value]) => ({
+      name: key,
+      token: value.trim(),
+      label: resolveAccountLabel(key),
+    }));
 
   if (tokens.length === 0) {
     throw new Error(
@@ -543,6 +588,7 @@ function normalizeResultRow(item) {
   return {
     account: accountNumberFromName(item.name),
     name: item.name,
+    label: item.label || null,
     status: item.status,
     message: item.message || "",
     creditsDelta:
@@ -671,12 +717,13 @@ async function main() {
   for (const account of tokens) {
     try {
       const result = await checkinAccount(account);
-      results.push({ name: account.name, ...result });
+      results.push({ name: account.name, label: account.label, ...result });
     } catch (error) {
       failures += 1;
       console.error(`[${account.name}] Check-in failed: ${error.message}`);
       results.push({
         name: account.name,
+        label: account.label,
         status: "failed",
         message: error.message,
         before: null,

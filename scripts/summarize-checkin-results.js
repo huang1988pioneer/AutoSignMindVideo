@@ -48,6 +48,7 @@ function loadRows(rootDir) {
       rows.push({
         account: item.account ?? null,
         name: item.name || (item.account != null ? `MINDVIDEO_TOKEN${item.account}` : "unknown"),
+        label: item.label || null,
         status: item.status || "unknown",
         message: item.message || "",
         creditsDelta: item.creditsDelta ?? null,
@@ -92,11 +93,14 @@ function escapeCell(value) {
   return String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 }
 
-function shortLabel(name) {
-  return String(name || "")
-    .replace(/^MINDVIDEO_TOKEN/i, "token")
-    .replace(/\s*\(\d+\)\s*$/, "")
-    .trim();
+function shortLabel(row) {
+  const num = row.account;
+  const label = row.label || String(row.name || "").replace(/^MINDVIDEO_TOKEN\d+$/i, "").trim() || null;
+
+  if (num != null && label) return `checkin-${num}-${label}`;
+  if (num != null) return `checkin-${num}`;
+  if (label) return label;
+  return String(row.name || "").replace(/^MINDVIDEO_TOKEN/i, "token").trim();
 }
 
 function compactMessage(message, max = 120) {
@@ -209,7 +213,7 @@ function buildMarkdown(rows, meta = {}) {
     for (const row of failedRows) {
       const no = row.account ?? "—";
       lines.push(
-        `| ${no} | ${escapeCell(shortLabel(row.name))} | ${escapeCell(
+        `| ${no} | ${escapeCell(shortLabel(row))} | ${escapeCell(
           compactMessage(row.message || "failed", 160)
         )} |`
       );
@@ -226,7 +230,7 @@ function buildMarkdown(rows, meta = {}) {
     for (const row of activeRows) {
       const no = row.account ?? "—";
       lines.push(
-        `| ${no} | ${escapeCell(shortLabel(row.name))} | ${statusBadge(
+        `| ${no} | ${escapeCell(shortLabel(row))} | ${statusBadge(
           row.status
         )} | ${rewardForRow(row)} | ${fmtNum(row.totalCredits)} | ${fmtNum(
           row.streak
@@ -241,7 +245,7 @@ function buildMarkdown(rows, meta = {}) {
     .sort((a, b) => (a.account ?? 9999) - (b.account ?? 9999));
 
   if (skippedRows.length > 0) {
-    const ids = skippedRows.map((r) => r.account ?? shortLabel(r.name)).join(", ");
+    const ids = skippedRows.map((r) => r.account ?? shortLabel(r)).join(", ");
     lines.push("### Skipped", "");
     lines.push(`No secret / token: **#${ids}**`, "");
   }
@@ -261,7 +265,7 @@ function buildMarkdown(rows, meta = {}) {
   if (zeroGain.length > 0) {
     lines.push("### Checked in with zero credit delta", "");
     for (const row of zeroGain) {
-      lines.push(`- **${escapeCell(shortLabel(row.name))}**: ${escapeCell(row.message || "delta 0")}`);
+      lines.push(`- **${escapeCell(shortLabel(row))}**: ${escapeCell(row.message || "delta 0")}`);
     }
     lines.push("");
   }
@@ -284,7 +288,7 @@ function printConsoleTable(rows, counts, gained) {
   );
   for (const row of rows) {
     console.log(
-      `- #${row.account ?? "?"} ${shortLabel(row.name)}: ${row.status} | Δ ${fmtDelta(
+      `- #${row.account ?? "?"} ${shortLabel(row)}: ${row.status} | Δ ${fmtDelta(
         row.creditsDelta
       )} | total ${fmtNum(row.totalCredits)} | ${noteForRow(row)}`
     );
