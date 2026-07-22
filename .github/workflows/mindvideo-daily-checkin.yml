@@ -14,7 +14,8 @@ on:
 
 jobs:
   checkin:
-    name: checkin-token-${{ matrix.account }}
+    # Job names use accounts.json labels, e.g. checkin-1-goldshoot0720
+    name: checkin-${{ matrix.account }}-${{ matrix.label }}
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '8 21 * * *' || github.event.schedule == '8 3 * * *' || github.event.schedule == '8 9 * * *' || github.event.schedule == '8 15 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -22,41 +23,75 @@ jobs:
       fail-fast: false
       # Cap burst size so MindVideo is less likely to rate-limit parallel jobs.
       max-parallel: 8
+      # Keep labels in sync with repo-root accounts.json
       matrix:
-        account:
-          - 1
-          - 2
-          - 3
-          - 4
-          - 5
-          - 6
-          - 7
-          - 8
-          - 9
-          - 10
-          - 11
-          - 12
-          - 13
-          - 14
-          - 15
-          - 16
-          - 17
-          - 18
-          - 19
-          - 20
-          - 21
-          - 22
-          - 23
-          - 24
-          - 25
-          - 26
-          - 27
-          - 28
-          - 29
-          - 30
-          - 31
-          - 32
-          - 33
+        include:
+          - account: 1
+            label: goldshoot0720
+          - account: 2
+            label: abuhg17
+          - account: 3
+            label: fengtuprinfo
+          - account: 4
+            label: feng33feng35feng3
+          - account: 5
+            label: chbondg2
+          - account: 6
+            label: huang1988pioneer
+          - account: 7
+            label: chbondg_outloook
+          - account: 8
+            label: gaokaolevel3iptopscorer_outlook
+          - account: 9
+            label: huang1988pioneer_outloook
+          - account: 10
+            label: fengtuta_tuta
+          - account: 11
+            label: fengfence_fence
+          - account: 12
+            label: samafengtu
+          - account: 13
+            label: fengtusama
+          - account: 14
+            label: fengwithting0831
+          - account: 15
+            label: fengwithfeng1127
+          - account: 16
+            label: fengwithtu1127
+          - account: 17
+            label: akaonda333
+          - account: 18
+            label: fbussinesseng
+          - account: 19
+            label: engdictatorf
+          - account: 20
+            label: flottojackpoteng
+          - account: 21
+            label: tushenbyfengbro
+          - account: 22
+            label: account-22
+          - account: 23
+            label: account-23
+          - account: 24
+            label: account-24
+          - account: 25
+            label: account-25
+          - account: 26
+            label: account-26
+          - account: 27
+            label: account-27
+          - account: 28
+            label: account-28
+          - account: 29
+            label: account-29
+          - account: 30
+            label: account-30
+          - account: 31
+            label: account-31
+          - account: 32
+            label: account-32
+          - account: 33
+            label: account-33
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,6 +100,7 @@ jobs:
       - name: Run MindVideo check-in
         env:
           MINDVIDEO_ACCOUNT: ${{ matrix.account }}
+          MINDVIDEO_ACCOUNT_LABEL: ${{ matrix.label }}
           MINDVIDEO_SECRET_NAME: MINDVIDEO_TOKEN${{ matrix.account }}
           MINDVIDEO_TOKEN: ${{ secrets[format('MINDVIDEO_TOKEN{0}', matrix.account)] }}
           MINDVIDEO_LANG: zh-TW
@@ -74,13 +110,14 @@ jobs:
           mkdir -p artifacts
 
           if [ -z "$MINDVIDEO_TOKEN" ]; then
-            echo "$MINDVIDEO_SECRET_NAME is not configured; writing skipped result."
+            echo "$MINDVIDEO_SECRET_NAME ($MINDVIDEO_ACCOUNT_LABEL) is not configured; writing skipped result."
             node --input-type=module <<'NODE'
           import fs from "node:fs";
           const account = Number(process.env.MINDVIDEO_ACCOUNT);
           const row = {
             account,
             name: process.env.MINDVIDEO_SECRET_NAME,
+            label: process.env.MINDVIDEO_ACCOUNT_LABEL || null,
             status: "skipped",
             message: "token not configured",
             creditsDelta: null,
@@ -116,6 +153,7 @@ jobs:
           const row = {
             account,
             name: process.env.MINDVIDEO_SECRET_NAME,
+            label: process.env.MINDVIDEO_ACCOUNT_LABEL || null,
             status: "failed",
             message: "check-in exited without writing result artifact",
             creditsDelta: null,
@@ -136,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: checkin-result-${{ matrix.account }}
+          name: checkin-result-${{ matrix.account }}-${{ matrix.label }}
           path: artifacts/checkin-result.json
           if-no-files-found: warn
           retention-days: 14
