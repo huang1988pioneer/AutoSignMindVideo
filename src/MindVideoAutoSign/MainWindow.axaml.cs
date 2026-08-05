@@ -78,11 +78,77 @@ public partial class MainWindow : Window
 
     private int AccountNumber => Math.Max(1, AccountComboBox.SelectedIndex + 1);
     private string SecretName => $"MINDVIDEO_TOKEN{AccountNumber}";
-    private string TokenFile => Path.Combine(_workspace, "logs", $"mindvideo-token-{AccountNumber:00}.txt");
+    /// <summary>Preferred local capture path: mindvideo-token-01-alias.txt (alias suffix when set).</summary>
+    private string TokenFile => GetPreferredTokenFilePath(AccountNumber);
     private static string AliasFile => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "MindVideoFlow",
         "account-aliases.json");
+
+    private string LogsDir => Path.Combine(_workspace, "logs");
+
+    /// <summary>
+    /// Local token files use an account-alias suffix when available, e.g.
+    /// <c>mindvideo-token-01-goldshoot0720.txt</c>. Falls back to
+    /// <c>mindvideo-token-01.txt</c> when no alias is set.
+    /// </summary>
+    private string GetPreferredTokenFilePath(int accountNumber)
+    {
+        var prefix = $"mindvideo-token-{accountNumber:00}";
+        var suffix = SanitizeFileSuffix(_aliases.GetValueOrDefault(accountNumber));
+        var fileName = string.IsNullOrWhiteSpace(suffix)
+            ? $"{prefix}.txt"
+            : $"{prefix}-{suffix}.txt";
+        return Path.Combine(LogsDir, fileName);
+    }
+
+    /// <summary>Find an existing token file for the account (suffix form preferred, then legacy).</summary>
+    private string? FindExistingTokenFile(int accountNumber)
+    {
+        var preferred = GetPreferredTokenFilePath(accountNumber);
+        if (File.Exists(preferred)) return preferred;
+
+        if (!Directory.Exists(LogsDir)) return null;
+
+        var prefix = $"mindvideo-token-{accountNumber:00}";
+        // Prefer newest match among mindvideo-token-NN*.txt (covers alias renames + legacy).
+        return Directory.EnumerateFiles(LogsDir, $"{prefix}*.txt")
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
+    }
+
+    private void ClearStaleTokenFiles(int accountNumber, string keepPath)
+    {
+        if (!Directory.Exists(LogsDir)) return;
+        var prefix = $"mindvideo-token-{accountNumber:00}";
+        foreach (var path in Directory.EnumerateFiles(LogsDir, $"{prefix}*.txt"))
+        {
+            if (string.Equals(path, keepPath, StringComparison.OrdinalIgnoreCase))
+                continue;
+            try { File.Delete(path); }
+            catch { /* ignore locked/legacy */ }
+        }
+    }
+
+    private static string? SanitizeFileSuffix(string? alias)
+    {
+        if (string.IsNullOrWhiteSpace(alias)) return null;
+        var trimmed = alias.Trim();
+        // Skip placeholder aliases like account-22
+        if (System.Text.RegularExpressions.Regex.IsMatch(
+                trimmed, @"^account[-_]?\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            return null;
+
+        var invalid = Path.GetInvalidFileNameChars();
+        var chars = trimmed
+            .Select(c => invalid.Contains(c) || c is '/' or '\\' or ':' or ' ' ? '_' : c)
+            .ToArray();
+        var cleaned = new string(chars).Trim('_', '-', '.');
+        // Collapse repeated underscores
+        while (cleaned.Contains("__", StringComparison.Ordinal))
+            cleaned = cleaned.Replace("__", "_", StringComparison.Ordinal);
+        return string.IsNullOrWhiteSpace(cleaned) ? null : cleaned;
+    }
 
     private void DashboardNavButton_OnClick(object? sender, RoutedEventArgs e) => ShowView(DashboardView);
     private void AccountsNavButton_OnClick(object? sender, RoutedEventArgs e) => ShowView(AccountsView);
@@ -250,16 +316,15 @@ public partial class MainWindow : Window
                 }
             }
 
-            // Also load any previously captured token files.
+            // Also load any previously captured token files (alias-suffix or legacy).
             for (var i = 1; i <= AccountCount; i++)
             {
-                var file = Path.Combine(_workspace, "logs", $"mindvideo-token-{i:00}.txt");
-                if (!_tokens.ContainsKey(i) && File.Exists(file))
-                {
-                    var token = (await File.ReadAllTextAsync(file)).Trim();
-                    if (!string.IsNullOrWhiteSpace(token))
-                        _tokens[i] = token;
-                }
+                if (_tokens.ContainsKey(i)) continue;
+                var file = FindExistingTokenFile(i);
+                if (file is null) continue;
+                var token = (await File.ReadAllTextAsync(file)).Trim();
+                if (!string.IsNullOrWhiteSpace(token))
+                    _tokens[i] = token;
             }
 
             UpdateAccountDisplay();
@@ -281,8 +346,10 @@ public partial class MainWindow : Window
             await RunProcessAsync("npm", ["install"]);
             await RunProcessAsync("npx", ["playwright", "install", "chromium"]);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(TokenFile)!);
-            if (File.Exists(TokenFile)) File.Delete(TokenFile);
+            var tokenFile = GetPreferredTokenFilePath(AccountNumber);
+            Directory.CreateDirectory(Path.GetDirectoryName(tokenFile)!);
+            ClearStaleTokenFiles(AccountNumber, tokenFile);
+            if (File.Exists(tokenFile)) File.Delete(tokenFile);
 
             var chrome = ReadChromeFieldsFromUi();
             var cdpUserData = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
@@ -296,25 +363,25 @@ public partial class MainWindow : Window
                 throw new FileNotFoundException($"找不到 chrome.exe：{chrome.ExecutablePath}");
 
             LoginStatus.Text =
-                $"將以獨立 CDP 設定檔啟動（非系統 Profile）：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token。";
+                $"將以獨立 CDP 設定檔啟動（非系統 Profile）：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
 
             // Never pass system --profile-directory for CDP. Chrome rejects default User Data.
             var captureArgs = new List<string>
             {
                 "scripts/capture-token-gui.mjs",
                 "--account", AccountNumber.ToString(),
-                "--output", TokenFile,
+                "--output", tokenFile,
                 "--executable-path", chrome.ExecutablePath,
                 "--user-data-dir", cdpUserData
             };
 
             await RunProcessAsync("node", captureArgs);
 
-            if (!File.Exists(TokenFile))
+            if (!File.Exists(tokenFile))
                 throw new InvalidOperationException(
                     "未找到已驗證的 Token 檔。請確認已在瀏覽器中完整登入 MindVideo（非僅停留在登入頁）。");
 
-            var token = (await File.ReadAllTextAsync(TokenFile)).Trim();
+            var token = (await File.ReadAllTextAsync(tokenFile)).Trim();
             if (string.IsNullOrWhiteSpace(token))
                 throw new InvalidOperationException("Token 檔是空的。");
 
@@ -323,7 +390,7 @@ public partial class MainWindow : Window
             await PersistLocalTokensAsync();
             CopyTokenButton.IsEnabled = true;
             LoginStatus.Text =
-                $"完成。已確認登入維持 ≥5 秒並擷取有效 Token（{MaskToken(token)}），可更新到 GitHub Secret {SecretName}。";
+                $"完成。已確認登入維持 ≥5 秒並擷取有效 Token（{MaskToken(token)}）→ {Path.GetFileName(tokenFile)}，可更新到 GitHub Secret {SecretName}。";
             PointsStatus.Text = "Token 已驗證就緒，可讀取狀態或直接簽到。";
         }
         catch (Exception ex)

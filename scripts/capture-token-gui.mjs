@@ -8,7 +8,10 @@
  * Order: Google login → hold ≥5s → capture token → close browser
  *
  * Usage:
- *   node scripts/capture-token-gui.mjs --account 1 --output logs/token-01.txt
+ *   node scripts/capture-token-gui.mjs --account 1 --output logs/mindvideo-token-01-alias.txt
+ *
+ * Default --output (when omitted) is logs/mindvideo-token-NN[-alias].txt
+ * using the account label from chrome-profiles.json when available.
  */
 import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
@@ -67,12 +70,6 @@ function parseArgs() {
   if (!Number.isInteger(options.account) || options.account < 1) {
     throw new Error("--account must be a positive integer");
   }
-  if (!options.output) {
-    options.output = path.join(
-      "logs",
-      `mindvideo-token-${String(options.account).padStart(2, "0")}.txt`
-    );
-  }
 
   // Merge account mapping from chrome-profiles.json (CLI flags win).
   const mapped = loadChromeProfileMapping(options.account);
@@ -89,7 +86,31 @@ function parseArgs() {
     options.profileLabel = mapped.label || null;
   }
 
+  // Default local path includes account-alias suffix when known:
+  // mindvideo-token-01-goldshoot0720.txt
+  if (!options.output) {
+    const nn = String(options.account).padStart(2, "0");
+    const suffix = sanitizeFileSuffix(options.profileLabel);
+    const fileName = suffix
+      ? `mindvideo-token-${nn}-${suffix}.txt`
+      : `mindvideo-token-${nn}.txt`;
+    options.output = path.join("logs", fileName);
+  }
+
   return options;
+}
+
+/** Safe filename segment from account alias (no path separators / reserved chars). */
+function sanitizeFileSuffix(label) {
+  if (!label || typeof label !== "string") return null;
+  const trimmed = label.trim();
+  if (!trimmed || /^account[-_]?\d+$/i.test(trimmed)) return null;
+  const cleaned = trimmed
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^[_.-]+|[_.-]+$/g, "");
+  return cleaned || null;
 }
 
 function loadChromeProfileMapping(accountNumber) {
