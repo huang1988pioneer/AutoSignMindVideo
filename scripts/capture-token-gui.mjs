@@ -1,14 +1,15 @@
 /**
  * GUI-friendly single-account MindVideo token capture.
- * Opens a real Chrome/Edge window (not Playwright Chromium) so Google OAuth
- * is less likely to show "browser may not be secure", waits until the user
- * is logged in, verifies the Bearer token, holds ≥5s, captures the token,
- * then closes.
+ *
+ * Browsers:
+ *   - chrome (default): real Chrome/Edge via CDP (--user-data-dir dedicated folder)
+ *   - firefox: Playwright firefox.launchPersistentContext (profile folder)
  *
  * Order: Google login → hold ≥5s → capture token → close browser
  *
  * Usage:
  *   node scripts/capture-token-gui.mjs --account 1 --output logs/mindvideo-token-01-alias.txt
+ *   node scripts/capture-token-gui.mjs --account 1 --browser firefox --executable-path "C:\\...\\firefox.exe"
  *
  * Default --output (when omitted) is logs/mindvideo-token-NN[-alias].txt
  * using the account label from chrome-profiles.json when available.
@@ -42,6 +43,7 @@ function parseArgs() {
     output: null,
     url: DEFAULT_URL,
     timeoutMs: 10 * 60 * 1000,
+    browser: null,
     profileDirectory: null,
     userDataDir: null,
     executablePath: null,
@@ -53,14 +55,16 @@ function parseArgs() {
     else if (arg === "--output") options.output = args[++i];
     else if (arg === "--url") options.url = args[++i];
     else if (arg === "--timeout-ms") options.timeoutMs = Number(args[++i]);
+    else if (arg === "--browser") options.browser = String(args[++i] || "").toLowerCase();
     else if (arg === "--profile-directory") options.profileDirectory = args[++i];
     else if (arg === "--user-data-dir") options.userDataDir = args[++i];
     else if (arg === "--executable-path") options.executablePath = args[++i];
     else if (arg === "--help" || arg === "-h") {
       console.log(`Usage: node scripts/capture-token-gui.mjs --account N --output FILE
-  --profile-directory NAME   Chrome profile folder (e.g. Default, Profile 1)
-  --user-data-dir PATH       Chrome user data dir (default: system Chrome User Data)
-  --executable-path PATH     chrome.exe path`);
+  --browser chrome|firefox   Browser engine (default: infer from executable / chrome)
+  --profile-directory NAME   Chrome note / profile label (not used for CDP user-data)
+  --user-data-dir PATH       Chrome CDP user-data-dir OR Firefox profile directory
+  --executable-path PATH     chrome.exe / msedge.exe / firefox.exe`);
       process.exit(0);
     } else {
       throw new Error(`Unknown argument: ${arg}`);
@@ -74,6 +78,7 @@ function parseArgs() {
   // Merge account mapping from chrome-profiles.json (CLI flags win).
   const mapped = loadChromeProfileMapping(options.account);
   if (mapped) {
+    if (!options.browser && mapped.browser) options.browser = mapped.browser;
     if (!options.profileDirectory && mapped.profileDirectory) {
       options.profileDirectory = mapped.profileDirectory;
     }
@@ -85,6 +90,8 @@ function parseArgs() {
     }
     options.profileLabel = mapped.label || null;
   }
+
+  options.browser = normalizeBrowser(options.browser, options.executablePath);
 
   // Default local path includes account-alias suffix when known:
   // mindvideo-token-01-goldshoot0720.txt
@@ -98,6 +105,17 @@ function parseArgs() {
   }
 
   return options;
+}
+
+function normalizeBrowser(browser, executablePath) {
+  const b = String(browser || "").trim().toLowerCase();
+  if (b === "firefox" || b === "ff" || b === "mozilla") return "firefox";
+  if (b === "chrome" || b === "chromium" || b === "edge" || b === "msedge" || b === "cdp") {
+    return "chrome";
+  }
+  const exe = String(executablePath || "").toLowerCase();
+  if (exe.includes("firefox")) return "firefox";
+  return "chrome";
 }
 
 /** Safe filename segment from account alias (no path separators / reserved chars). */
@@ -121,6 +139,7 @@ function loadChromeProfileMapping(accountNumber) {
     if (!entry || typeof entry !== "object") return null;
     return {
       label: entry.label || null,
+      browser: entry.browser || null,
       profileDirectory: entry.profileDirectory || entry.profile || null,
       userDataDir: entry.userDataDir || null,
       executablePath: entry.executablePath || entry.executable || null,
@@ -128,6 +147,192 @@ function loadChromeProfileMapping(accountNumber) {
   } catch (error) {
     console.warn(`Failed to read chrome-profiles.json: ${error.message}`);
     return null;
+  }
+}
+
+function findSystemFirefox() {
+  const candidates = [];
+  if (process.platform === "win32") {
+    candidates.push(
+      path.join(process.env.PROGRAMFILES || "C:\\Program Files", "Mozilla Firefox", "firefox.exe"),
+      path.join(process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)", "Mozilla Firefox", "firefox.exe")
+    );
+  } else if (process.platform === "darwin") {
+    candidates.push("/Applications/Firefox.app/Contents/MacOS/firefox");
+  } else {
+    candidates.push("/usr/bin/firefox", "/usr/bin/firefox-esr");
+  }
+  return candidates.find((p) => p && fs.existsSync(p)) || null;
+}
+
+function defaultFirefoxProfileDir(account) {
+  const accountKey = account > 0 ? String(account).padStart(2, "0") : "xx";
+  // Prefer LocalAppData ASCII path (no Chinese path segments).
+  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+    return path.join(
+      process.env.LOCALAPPDATA,
+      "MindVideo Auto Sign",
+      "firefox-profiles",
+      `account-${accountKey}`
+    );
+  }
+  return path.join(process.cwd(), ".browser-profiles", `firefox-account-${accountKey}`);
+}
+
+function firefoxSystemProfilesRoot() {
+  if (process.platform === "win32") {
+    return path.join(process.env.APPDATA || "", "Mozilla", "Firefox", "Profiles");
+  }
+  if (process.platform === "darwin") {
+    return path.join(os.homedir(), "Library", "Application Support", "Firefox", "Profiles");
+  }
+  return path.join(os.homedir(), ".mozilla", "firefox");
+}
+
+function isSystemFirefoxProfilesPath(dir) {
+  if (!dir) return false;
+  const normalized = path.resolve(dir).toLowerCase();
+  return (
+    normalized.includes(`${path.sep}mozilla${path.sep}firefox${path.sep}profiles`) ||
+    /[\\/]mozilla[\\/]firefox[\\/]profiles(?:[\\/]|$)/i.test(normalized)
+  );
+}
+
+/** True if path contains non-ASCII (e.g. 設定檔) — console / some tools may garble it. */
+function hasNonAsciiPath(dir) {
+  return /[^\x00-\x7F]/.test(String(dir || ""));
+}
+
+/**
+ * Resolve a Firefox profile directory.
+ * If the exact path is missing (encoding garble of 設定檔 etc.), match by profile id prefix
+ * under Mozilla/Firefox/Profiles (e.g. hVesXz80.* → real folder name).
+ */
+function resolveExistingFirefoxProfile(requested) {
+  const resolved = path.resolve(requested);
+  try {
+    if (fs.existsSync(resolved)) return resolved;
+  } catch {
+    // ignore
+  }
+
+  const base = path.basename(resolved);
+  const prefix = base.includes(".") ? base.split(".")[0] : base;
+  if (!prefix || prefix.length < 3) return resolved;
+
+  const root = firefoxSystemProfilesRoot();
+  try {
+    if (!fs.existsSync(root)) return resolved;
+    const match = fs.readdirSync(root).find(
+      (name) => name === base || name.startsWith(`${prefix}.`) || name === prefix
+    );
+    if (match) {
+      const fixed = path.join(root, match);
+      console.warn(
+        `[Firefox] Profile path not found as written; resolved by id prefix "${prefix}" →\n  ${fixed}`
+      );
+      return fixed;
+    }
+  } catch (error) {
+    console.warn(`[Firefox] Could not scan Profiles folder: ${error.message}`);
+  }
+  return resolved;
+}
+
+function resolveFirefoxProfileDir(launchOpts = {}) {
+  const account = Number(launchOpts.account) || 0;
+  const fallback = defaultFirefoxProfileDir(account);
+  let requested = (launchOpts.userDataDir || "").trim();
+  if (!requested) return fallback;
+  return resolveExistingFirefoxProfile(requested);
+}
+
+function isFirefoxProcessRunning() {
+  try {
+    if (process.platform === "win32") {
+      const out = execSync('tasklist /FI "IMAGENAME eq firefox.exe" /NH', {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        windowsHide: true,
+      });
+      return /firefox\.exe/i.test(out);
+    }
+    if (process.platform === "darwin" || process.platform === "linux") {
+      execSync("pgrep -x firefox || pgrep -x firefox-bin", {
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Ensure profile is usable for launchPersistentContext.
+ * - If parent.lock + firefox running → clear Traditional Chinese error
+ * - If parent.lock + firefox NOT running → remove stale lock and continue
+ */
+function prepareFirefoxProfileForLaunch(profileDir) {
+  const lockFile = path.join(profileDir, "parent.lock");
+  const hasLock = fs.existsSync(lockFile);
+  const firefoxRunning = isFirefoxProcessRunning();
+
+  if (hasLock && firefoxRunning) {
+    throw new Error(
+      [
+        "Firefox profile 已被鎖定（parent.lock），Playwright 無法同時使用同一個 Profile。",
+        "",
+        `Profile: ${profileDir}`,
+        `Lock: ${lockFile}`,
+        "",
+        "請依序處理：",
+        "1) 關閉所有 Firefox 視窗（不要只按 X 後仍留在背景）。",
+        "2) 工作管理員（Ctrl+Shift+Esc）結束所有 firefox.exe。",
+        "3) 再重試「Google 登入並擷取 Token」。",
+        "",
+        "更穩定做法：改用獨立英文路徑的專用 Profile（App 內按「還原 Firefox 預設」），",
+        "例如 %LOCALAPPDATA%\\MindVideo Auto Sign\\firefox-profiles\\account-NN",
+        "首次在該專用 Profile 登入一次 Google 即可，不要用日常上網的 Profile。",
+      ].join("\n")
+    );
+  }
+
+  if (hasLock && !firefoxRunning) {
+    try {
+      fs.unlinkSync(lockFile);
+      console.warn(
+        `[Firefox] Removed stale parent.lock (Firefox not running):\n  ${lockFile}`
+      );
+    } catch (error) {
+      throw new Error(
+        [
+          "Firefox profile 有 parent.lock，且無法刪除（可能權限不足或仍被占用）。",
+          `Lock: ${lockFile}`,
+          error.message,
+          "",
+          "請手動確認 firefox.exe 已全部結束後刪除 parent.lock，或改用專用 Profile。",
+        ].join("\n")
+      );
+    }
+  }
+
+  if (hasNonAsciiPath(profileDir)) {
+    console.warn(
+      "[Firefox] Profile path contains non-ASCII characters (e.g. 設定檔)."
+    );
+    console.warn(
+      "[Firefox] Prefer an English-only dedicated profile under MindVideo Auto Sign\\firefox-profiles\\account-NN."
+    );
+  }
+
+  if (isSystemFirefoxProfilesPath(profileDir)) {
+    console.warn(
+      "[Firefox] Using a system Mozilla\\Firefox\\Profiles path — do not keep Firefox open."
+    );
+  } else {
+    fs.mkdirSync(profileDir, { recursive: true });
   }
 }
 
@@ -754,7 +959,101 @@ async function launchStealthPersistent(chromium, startUrl, launchOpts = {}) {
   throw new Error("無法啟動可用的瀏覽器進行 Google 登入。");
 }
 
-async function openBrowserSession(chromium, startUrl, launchOpts = {}) {
+/**
+ * Launch Firefox via Playwright persistent context.
+ * userDataDir is the Firefox profile directory (not a parent of profiles).
+ */
+async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
+  const { firefox } = playwright;
+  if (!firefox) {
+    throw new Error(
+      "Playwright firefox 不可用。請執行：npx playwright install firefox"
+    );
+  }
+
+  const executable =
+    (launchOpts.executablePath && fs.existsSync(launchOpts.executablePath)
+      ? launchOpts.executablePath
+      : null) || findSystemFirefox();
+
+  const profileDir = resolveFirefoxProfileDir(launchOpts);
+  prepareFirefoxProfileForLaunch(profileDir);
+
+  console.log(`[Firefox] Launching Playwright persistent context`);
+  console.log(`[Firefox] executable: ${executable || "(Playwright bundled firefox)"}`);
+  console.log(`[Firefox] profile: ${profileDir}`);
+  console.log(
+    "[Firefox] Tip: first run needs Google login once; later runs reuse cookies in this profile."
+  );
+
+  try {
+    const context = await firefox.launchPersistentContext(profileDir, {
+      headless: false,
+      viewport: { width: 1365, height: 900 },
+      locale: "zh-TW",
+      ...(executable ? { executablePath: executable } : {}),
+      firefoxUserPrefs: {
+        "dom.webdriver.enabled": false,
+        "useAutomationExtension": false,
+      },
+    });
+
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", {
+        get: () => undefined,
+      });
+    });
+
+    const page = context.pages()[0] || (await context.newPage());
+    try {
+      await page.goto(startUrl || DEFAULT_URL, {
+        waitUntil: "domcontentloaded",
+        timeout: 45_000,
+      });
+    } catch (error) {
+      console.warn(`[Firefox] Initial navigation warning: ${error.message}`);
+    }
+
+    console.log("[Firefox] Persistent context ready");
+    return {
+      browser: context.browser(),
+      context,
+      mode: "firefox-persistent",
+      userDataDir: profileDir,
+      // Dedicated profiles are safe to close; system profiles we still close Playwright context.
+      useSystemProfile: false,
+    };
+  } catch (error) {
+    const msg = String(error.message || error);
+    if (/lock|profile|busy|in use/i.test(msg)) {
+      throw new Error(
+        [
+          "Firefox 啟動失敗：Profile 可能仍被鎖定或占用。",
+          msg,
+          "",
+          "處理方式：",
+          "1) 工作管理員結束所有 firefox.exe",
+          "2) 若 Firefox 已關，刪除該 Profile 內的 parent.lock",
+          "3) 建議改用專用英文路徑：%LOCALAPPDATA%\\MindVideo Auto Sign\\firefox-profiles\\account-NN",
+          `目前 Profile: ${profileDir}`,
+        ].join("\n")
+      );
+    }
+    throw new Error(
+      `Firefox 啟動失敗：${msg}\n若尚未安裝瀏覽器二進位：npx playwright install firefox\nProfile: ${profileDir}`
+    );
+  }
+}
+
+async function openBrowserSession(playwright, startUrl, launchOpts = {}) {
+  const browserKind = normalizeBrowser(launchOpts.browser, launchOpts.executablePath);
+  launchOpts.browser = browserKind;
+
+  if (browserKind === "firefox") {
+    return launchFirefoxPersistent(playwright, startUrl, launchOpts);
+  }
+
+  const { chromium } = playwright;
   try {
     return await launchRealBrowserViaCdp(chromium, startUrl, launchOpts);
   } catch (error) {
@@ -775,34 +1074,41 @@ async function getWorkingPage(session) {
     if (pages.length > 0) return pages[0];
     return context.newPage();
   }
-  // persistent
+  // persistent / firefox-persistent
   const pages = session.context.pages();
   if (pages.length > 0) return pages[0];
   return session.context.newPage();
 }
 
 async function closeBrowserSession(session) {
-  // For system Chrome profiles (Default / Profile N): do not close/kill Chrome.
-  // Playwright browser.close() on CDP would quit the real browser.
-  const keepChromeAlive = Boolean(session?.useSystemProfile);
+  // For system browser profiles: do not force-kill the user's main browser.
+  const keepAlive = Boolean(session?.useSystemProfile);
 
-  if (keepChromeAlive) {
+  if (keepAlive) {
     console.log(
-      "Leaving system Chrome profile open (Default/Profile). Close the window manually when done."
+      "Leaving system browser profile open. Close the window manually when done."
     );
+    // Still detach Playwright cleanly without killing if possible.
+    try {
+      if (session?.context && (session.mode === "persistent" || session.mode === "firefox-persistent")) {
+        await session.context.close().catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
     return;
   }
 
   try {
-    if (session?.browser) {
-      await session.browser.close().catch(() => {});
+    if (session?.context && (session.mode === "persistent" || session.mode === "firefox-persistent")) {
+      await session.context.close().catch(() => {});
     }
   } catch {
     // ignore
   }
   try {
-    if (session?.context && session.mode === "persistent") {
-      await session.context.close().catch(() => {});
+    if (session?.browser) {
+      await session.browser.close().catch(() => {});
     }
   } catch {
     // ignore
@@ -920,22 +1226,29 @@ async function openGoogleLogin(page, startUrl) {
 
 async function main() {
   const options = parseArgs();
-  const { chromium } = await loadPlaywright();
+  const playwright = await loadPlaywright();
   const secretName = `MINDVIDEO_TOKEN${options.account}`;
+  const browserKind = normalizeBrowser(options.browser, options.executablePath);
 
   const launchOpts = {
     account: options.account,
+    browser: browserKind,
     profileDirectory: options.profileDirectory,
     userDataDir: options.userDataDir,
     executablePath: options.executablePath,
     profileLabel: options.profileLabel || null,
   };
 
-  if (launchOpts.profileDirectory) {
+  if (browserKind === "firefox") {
+    console.log(
+      `[${secretName}] Browser=Firefox (Playwright persistent)` +
+        (launchOpts.profileLabel ? ` · ${launchOpts.profileLabel}` : "")
+    );
+  } else if (launchOpts.profileDirectory) {
     console.log(
       `[${secretName}] Using Chrome profile-directory="${launchOpts.profileDirectory}"` +
         (launchOpts.profileLabel ? ` (${launchOpts.profileLabel})` : "") +
-        ` — close all Chrome windows first.`
+        ` as label; CDP uses dedicated user-data-dir.`
     );
   } else {
     console.log(
@@ -943,7 +1256,7 @@ async function main() {
     );
   }
 
-  const session = await openBrowserSession(chromium, options.url || DEFAULT_URL, launchOpts);
+  const session = await openBrowserSession(playwright, options.url || DEFAULT_URL, launchOpts);
   try {
     const page = await getWorkingPage(session);
     const context = session.context;
@@ -974,7 +1287,9 @@ async function main() {
     });
 
     const waitingBanner =
-      "此帳號為 Google 帳號：請用「Login with Google」登入。此視窗為本機 Chrome/Edge（非自動化 Chromium）。登入成功後維持 ≥5 秒會擷取 Token。";
+      browserKind === "firefox"
+        ? "此帳號為 Google 帳號：請用「Login with Google」登入。此視窗為 Firefox（Playwright）。登入成功後維持 ≥5 秒會擷取 Token。"
+        : "此帳號為 Google 帳號：請用「Login with Google」登入。此視窗為本機 Chrome/Edge（非自動化 Chromium）。登入成功後維持 ≥5 秒會擷取 Token。";
 
     page.on("framenavigated", async (frame) => {
       if (frame === page.mainFrame()) {

@@ -5,7 +5,7 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Default",
     "userDataDir": null,
-    "note": "Human mapping: chrome.exe --profile-directory=Default. CDP uses dedicated folder (never system User Data)."
+    "note": "Human mapping: Chrome Profile Default. CDP uses dedicated chrome-cdp/account-01."
   },
   "2": {
     "label": "abuhg17",
@@ -13,7 +13,7 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 2",
     "userDataDir": null,
-    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 2\". CDP uses dedicated folder (never system User Data)."
+    "note": "Human mapping: Chrome Profile 2. CDP uses dedicated chrome-cdp/account-02."
   },
   "3": {
     "label": "fengtuprinfo",
@@ -21,7 +21,7 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 14",
     "userDataDir": null,
-    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 14\". CDP uses dedicated folder (never system User Data)."
+    "note": "Human mapping: Chrome Profile 14. CDP uses dedicated chrome-cdp/account-03."
   },
   "4": {
     "label": "feng33feng35feng3",
@@ -29,7 +29,7 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 3",
     "userDataDir": null,
-    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 3\". CDP uses dedicated folder (never system User Data)."
+    "note": "Human mapping: Chrome Profile 3. CDP uses dedicated chrome-cdp/account-04."
   },
   "5": {
     "label": "chbondg2",
@@ -37,7 +37,7 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 17",
     "userDataDir": null,
-    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 17\". CDP uses dedicated folder (never system User Data)."
+    "note": "Human mapping: Chrome Profile 17. CDP uses dedicated chrome-cdp/account-05."
   },
   "6": {
     "label": "huang1988pioneer",
@@ -45,6 +45,30 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 1",
     "userDataDir": null,
-    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 1\". CDP uses dedicated folder (never system User Data)."
+    "note": "Human mapping: Chrome Profile 1. CDP uses dedicated chrome-cdp/account-06."
+  },
+  "7": {
+    "label": "chbondg_outloook",
+    "browser": "firefox",
+    "executablePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+    "profileDirectory": "hVesXz80 (system note only)",
+    "userDataDir": null,
+    "note": "Dedicated ASCII profile under firefox-profiles/account-07. System was hVesXz80.設定檔 2 — do not share with daily Firefox."
+  },
+  "8": {
+    "label": "gaokaolevel3iptopscorer_outlook",
+    "browser": "firefox",
+    "executablePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+    "profileDirectory": "qknaH3f1 (system note only)",
+    "userDataDir": null,
+    "note": "Dedicated ASCII profile under firefox-profiles/account-08. System was qknaH3f1.設定檔 1 — do not share with daily Firefox."
+  },
+  "9": {
+    "label": "huang1988pioneer_outloook",
+    "browser": "firefox",
+    "executablePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+    "profileDirectory": "9DSNUn3v (system note only)",
+    "userDataDir": null,
+    "note": "Dedicated ASCII profile under firefox-profiles/account-09. System was 9DSNUn3v.設定檔 4 — do not share with daily Firefox."
   }
 }

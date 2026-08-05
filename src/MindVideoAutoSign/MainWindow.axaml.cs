@@ -172,11 +172,7 @@ public partial class MainWindow : Window
 
         var label = _aliases.GetValueOrDefault(AccountNumber);
         var chrome = GetChromeConfig(AccountNumber);
-        var dataDir = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
-        var chromeHint = $"CDP {Path.GetFileName(dataDir)}";
-        SecretNameText.Text = string.IsNullOrWhiteSpace(label)
-            ? $"{SecretName}  ·  {chromeHint}"
-            : $"{SecretName}  ·  {label}  ·  {chromeHint}";
+        SecretNameText.Text = BuildSecretNameText(chrome);
         TokenBox.Text = _tokens.GetValueOrDefault(AccountNumber) ?? string.Empty;
         if (CopyTokenButton is not null)
             CopyTokenButton.IsEnabled = !string.IsNullOrWhiteSpace(TokenBox.Text);
@@ -192,8 +188,54 @@ public partial class MainWindow : Window
     private ChromeProfileConfig GetChromeConfig(int accountNumber)
     {
         if (_chromeByAccount.TryGetValue(accountNumber, out var config))
-            return config;
+            return ChromeProfileStore.Normalize(config, accountNumber);
         return ChromeProfileStore.CreateDefault(accountNumber);
+    }
+
+    private string SelectedBrowserEngine()
+    {
+        if (BrowserEngineComboBox?.SelectedItem is ComboBoxItem item && item.Tag is string tag)
+            return ChromeProfileStore.NormalizeBrowser(tag, null);
+        return ChromeProfileStore.BrowserChrome;
+    }
+
+    private void SetBrowserEngineCombo(string browser)
+    {
+        if (BrowserEngineComboBox is null) return;
+        var want = ChromeProfileStore.NormalizeBrowser(browser, null);
+        for (var i = 0; i < BrowserEngineComboBox.Items.Count; i++)
+        {
+            if (BrowserEngineComboBox.Items[i] is ComboBoxItem cbi &&
+                string.Equals(cbi.Tag as string, want, StringComparison.OrdinalIgnoreCase))
+            {
+                BrowserEngineComboBox.SelectedIndex = i;
+                return;
+            }
+        }
+        BrowserEngineComboBox.SelectedIndex = 0;
+    }
+
+    private void ApplyBrowserFieldHints(ChromeProfileConfig config)
+    {
+        var firefox = ChromeProfileStore.IsFirefox(config);
+        if (ChromeExeBox is not null)
+            ChromeExeBox.Watermark = firefox
+                ? @"C:\Program Files\Mozilla Firefox\firefox.exe"
+                : @"C:\Program Files\Google\Chrome\Application\chrome.exe";
+        if (ChromeUserDataBox is not null)
+            ChromeUserDataBox.Watermark = firefox
+                ? @"%LOCALAPPDATA%\MindVideo Auto Sign\firefox-profiles\account-01"
+                : @"%LOCALAPPDATA%\MindVideo Auto Sign\chrome-cdp\account-01";
+        if (ChromeUserDataLabel is not null)
+            ChromeUserDataLabel.Text = firefox
+                ? "Firefox profile 資料夾（建議獨立；可填系統 Profiles\\xxx，需先關閉 Firefox）"
+                : "CDP user-data-dir（必須獨立資料夾；禁止 Chrome\\User Data）";
+        if (ChromeProfileDirLabel is not null)
+            ChromeProfileDirLabel.Text = firefox
+                ? "備註（選填：系統 Firefox 設定檔名稱）"
+                : "備註（選填：系統 Profile 名稱；不影響 CDP）";
+        if (BrowserSettingsTitle is not null)
+            BrowserSettingsTitle.Text = firefox ? "Firefox Playwright 啟動設定" : "Chrome CDP 啟動設定";
     }
 
     private void LoadChromeFields(ChromeProfileConfig config)
@@ -202,10 +244,13 @@ public partial class MainWindow : Window
         _chromeUiLoading = true;
         try
         {
-            ChromeExeBox.Text = config.ExecutablePath;
-            ChromeProfileDirBox.Text = config.ProfileDirectory;
-            ChromeUserDataBox.Text = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, config.UserDataDir);
-            ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(config, AccountNumber);
+            var normalized = ChromeProfileStore.Normalize(config, AccountNumber);
+            SetBrowserEngineCombo(normalized.Browser);
+            ChromeExeBox.Text = normalized.ExecutablePath;
+            ChromeProfileDirBox.Text = normalized.ProfileDirectory;
+            ChromeUserDataBox.Text = ChromeProfileStore.ResolveProfileDir(normalized, AccountNumber);
+            ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(normalized, AccountNumber);
+            ApplyBrowserFieldHints(normalized);
         }
         finally
         {
@@ -215,22 +260,55 @@ public partial class MainWindow : Window
 
     private ChromeProfileConfig ReadChromeFieldsFromUi()
     {
+        var browser = SelectedBrowserEngine();
         var userData = string.IsNullOrWhiteSpace(ChromeUserDataBox.Text)
             ? null
             : ChromeUserDataBox.Text.Trim().Trim('"');
-        if (ChromeProfileStore.IsForbiddenSystemChromeUserDataDir(userData))
-            userData = ChromeProfileStore.DefaultCdpUserDataDir(AccountNumber);
 
-        return new ChromeProfileConfig
+        var exe = string.IsNullOrWhiteSpace(ChromeExeBox.Text)
+            ? (browser == ChromeProfileStore.BrowserFirefox
+                ? ChromeProfileStore.FindFirefoxExecutable() ?? ChromeProfileStore.DefaultFirefoxExecutablePath
+                : ChromeProfileStore.DefaultExecutablePath)
+            : ChromeExeBox.Text.Trim().Trim('"');
+
+        // Infer browser from executable if user typed firefox path while combo is chrome.
+        browser = ChromeProfileStore.NormalizeBrowser(browser, exe);
+
+        if (browser != ChromeProfileStore.BrowserFirefox &&
+            ChromeProfileStore.IsForbiddenSystemChromeUserDataDir(userData))
         {
-            ExecutablePath = string.IsNullOrWhiteSpace(ChromeExeBox.Text)
-                ? ChromeProfileStore.DefaultExecutablePath
-                : ChromeExeBox.Text.Trim().Trim('"'),
+            userData = ChromeProfileStore.DefaultCdpUserDataDir(AccountNumber);
+        }
+
+        return ChromeProfileStore.Normalize(new ChromeProfileConfig
+        {
+            Browser = browser,
+            ExecutablePath = exe,
             ProfileDirectory = string.IsNullOrWhiteSpace(ChromeProfileDirBox.Text)
-                ? ChromeProfileStore.DefaultProfileDirectory
+                ? (browser == ChromeProfileStore.BrowserFirefox ? "firefox" : ChromeProfileStore.DefaultProfileDirectory)
                 : ChromeProfileDirBox.Text.Trim().Trim('"'),
-            UserDataDir = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, userData)
-        };
+            UserDataDir = userData
+        }, AccountNumber);
+    }
+
+    private void BrowserEngineComboBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_chromeUiLoading || BrowserEngineComboBox is null) return;
+        var browser = SelectedBrowserEngine();
+        var current = ReadChromeFieldsFromUi();
+        if (ChromeProfileStore.NormalizeBrowser(current.Browser, current.ExecutablePath) == browser)
+        {
+            ApplyBrowserFieldHints(current);
+            return;
+        }
+
+        // Switch engine defaults for the new selection while keeping account number.
+        var next = browser == ChromeProfileStore.BrowserFirefox
+            ? ChromeProfileStore.CreateFirefoxDefault(AccountNumber)
+            : ChromeProfileStore.CreateDefault(AccountNumber);
+        _chromeByAccount[AccountNumber] = next;
+        LoadChromeFields(next);
+        SecretNameText.Text = BuildSecretNameText(next);
     }
 
     private void ChromeSettings_OnLostFocus(object? sender, RoutedEventArgs e)
@@ -239,19 +317,21 @@ public partial class MainWindow : Window
         var config = ReadChromeFieldsFromUi();
         _chromeByAccount[AccountNumber] = config;
         if (ChromeUserDataBox is not null)
-            ChromeUserDataBox.Text = config.UserDataDir ?? ChromeProfileStore.DefaultCdpUserDataDir(AccountNumber);
+            ChromeUserDataBox.Text = ChromeProfileStore.ResolveProfileDir(config, AccountNumber);
         ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(config, AccountNumber);
+        ApplyBrowserFieldHints(config);
         SecretNameText.Text = BuildSecretNameText(config);
     }
 
     private string BuildSecretNameText(ChromeProfileConfig chrome)
     {
         var label = _aliases.GetValueOrDefault(AccountNumber);
-        var dataDir = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
-        var chromeHint = $"CDP {Path.GetFileName(dataDir)}";
+        var dataDir = ChromeProfileStore.ResolveProfileDir(chrome, AccountNumber);
+        var engine = ChromeProfileStore.IsFirefox(chrome) ? "Firefox" : "CDP";
+        var hint = $"{engine} {Path.GetFileName(dataDir)}";
         return string.IsNullOrWhiteSpace(label)
-            ? $"{SecretName}  ·  {chromeHint}"
-            : $"{SecretName}  ·  {label}  ·  {chromeHint}";
+            ? $"{SecretName}  ·  {hint}"
+            : $"{SecretName}  ·  {label}  ·  {hint}";
     }
 
     private async void SaveChromeProfileButton_OnClick(object? sender, RoutedEventArgs e)
@@ -261,8 +341,15 @@ public partial class MainWindow : Window
             var config = ReadChromeFieldsFromUi();
             if (!File.Exists(config.ExecutablePath))
             {
-                LoginStatus.Text = $"找不到 chrome.exe：{config.ExecutablePath}";
+                LoginStatus.Text = $"找不到瀏覽器執行檔：{config.ExecutablePath}";
                 return;
+            }
+
+            if (ChromeProfileStore.IsFirefox(config) &&
+                ChromeProfileStore.IsSystemFirefoxProfilesPath(config.UserDataDir))
+            {
+                LoginStatus.Text =
+                    "警告：正在使用系統 Firefox Profiles 路徑。擷取前請完全關閉 Firefox，否則可能失敗或鎖檔。";
             }
 
             _chromeByAccount[AccountNumber] = config;
@@ -272,11 +359,11 @@ public partial class MainWindow : Window
             ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(config, AccountNumber);
             SecretNameText.Text = BuildSecretNameText(config);
             LoginStatus.Text =
-                $"已儲存帳號 {AccountNumber:00} 的 CDP 設定：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
+                $"已儲存帳號 {AccountNumber:00} 的瀏覽器設定：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
         }
         catch (Exception ex)
         {
-            LoginStatus.Text = $"儲存 Chrome 設定失敗：{ex.Message}";
+            LoginStatus.Text = $"儲存瀏覽器設定失敗：{ex.Message}";
         }
     }
 
@@ -291,11 +378,30 @@ public partial class MainWindow : Window
             LoadChromeFields(config);
             SecretNameText.Text = BuildSecretNameText(config);
             LoginStatus.Text =
-                $"已還原帳號 {AccountNumber:00} 預設：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
+                $"已還原帳號 {AccountNumber:00} Chrome 預設：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
         }
         catch (Exception ex)
         {
             LoginStatus.Text = $"還原 Chrome 預設失敗：{ex.Message}";
+        }
+    }
+
+    private async void ResetFirefoxProfileButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var config = ChromeProfileStore.CreateFirefoxDefault(AccountNumber);
+            _chromeByAccount[AccountNumber] = config;
+            await _chromeProfiles.SaveAccountAsync(AccountNumber, config);
+            await _chromeProfiles.SyncWorkspaceFileAsync(_chromeByAccount, _aliases);
+            LoadChromeFields(config);
+            SecretNameText.Text = BuildSecretNameText(config);
+            LoginStatus.Text =
+                $"已還原帳號 {AccountNumber:00} Firefox 預設：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
+        }
+        catch (Exception ex)
+        {
+            LoginStatus.Text = $"還原 Firefox 預設失敗：{ex.Message}";
         }
     }
 
@@ -342,38 +448,65 @@ public partial class MainWindow : Window
         CopyTokenButton.IsEnabled = false;
         try
         {
-            LoginStatus.Text = "正在確認 Node.js 相依套件與 Chromium…";
+            var chrome = ReadChromeFieldsFromUi();
+            var isFirefox = ChromeProfileStore.IsFirefox(chrome);
+            LoginStatus.Text = isFirefox
+                ? "正在確認 Node.js 相依套件與 Playwright Firefox…"
+                : "正在確認 Node.js 相依套件與 Chromium…";
             await RunProcessAsync("npm", ["install"]);
-            await RunProcessAsync("npx", ["playwright", "install", "chromium"]);
+            await RunProcessAsync("npx", ["playwright", "install", isFirefox ? "firefox" : "chromium"]);
 
             var tokenFile = GetPreferredTokenFilePath(AccountNumber);
             Directory.CreateDirectory(Path.GetDirectoryName(tokenFile)!);
             ClearStaleTokenFiles(AccountNumber, tokenFile);
             if (File.Exists(tokenFile)) File.Delete(tokenFile);
 
-            var chrome = ReadChromeFieldsFromUi();
-            var cdpUserData = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
-            chrome.UserDataDir = cdpUserData;
+            var profileDir = ChromeProfileStore.ResolveProfileDir(chrome, AccountNumber);
+            chrome.UserDataDir = profileDir;
             _chromeByAccount[AccountNumber] = chrome;
             await _chromeProfiles.SaveAccountAsync(AccountNumber, chrome);
             await _chromeProfiles.SyncWorkspaceFileAsync(_chromeByAccount, _aliases);
-            Directory.CreateDirectory(cdpUserData);
+            Directory.CreateDirectory(profileDir);
 
             if (!File.Exists(chrome.ExecutablePath))
-                throw new FileNotFoundException($"找不到 chrome.exe：{chrome.ExecutablePath}");
+                throw new FileNotFoundException($"找不到瀏覽器執行檔：{chrome.ExecutablePath}");
 
-            LoginStatus.Text =
-                $"將以獨立 CDP 設定檔啟動（非系統 Profile）：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
+            if (isFirefox)
+            {
+                // Fail early with clear ZH guidance; also clears stale parent.lock.
+                ChromeProfileStore.PrepareFirefoxProfileOrThrow(profileDir);
+                if (ChromeProfileStore.IsSystemFirefoxProfilesPath(profileDir))
+                {
+                    LoginStatus.Text =
+                        "將使用系統 Firefox profile（勿同時開 Firefox；中文路徑建議改專用英文 Profile）… " +
+                        ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber);
+                }
+                else
+                {
+                    LoginStatus.Text =
+                        $"將以專用 Firefox Profile 啟動：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
+                }
+            }
+            else
+            {
+                LoginStatus.Text =
+                    $"將啟動：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
+            }
 
-            // Never pass system --profile-directory for CDP. Chrome rejects default User Data.
             var captureArgs = new List<string>
             {
                 "scripts/capture-token-gui.mjs",
                 "--account", AccountNumber.ToString(),
                 "--output", tokenFile,
+                "--browser", ChromeProfileStore.NormalizeBrowser(chrome.Browser, chrome.ExecutablePath),
                 "--executable-path", chrome.ExecutablePath,
-                "--user-data-dir", cdpUserData
+                "--user-data-dir", profileDir
             };
+            if (!string.IsNullOrWhiteSpace(chrome.ProfileDirectory))
+            {
+                captureArgs.Add("--profile-directory");
+                captureArgs.Add(chrome.ProfileDirectory);
+            }
 
             await RunProcessAsync("node", captureArgs);
 
