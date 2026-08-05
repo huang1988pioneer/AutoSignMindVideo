@@ -1,0 +1,50 @@
+{
+  "1": {
+    "label": "goldshoot0720",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Default",
+    "userDataDir": null,
+    "note": "Human mapping: chrome.exe --profile-directory=Default. CDP uses dedicated folder (never system User Data)."
+  },
+  "2": {
+    "label": "abuhg17",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Profile 2",
+    "userDataDir": null,
+    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 2\". CDP uses dedicated folder (never system User Data)."
+  },
+  "3": {
+    "label": "fengtuprinfo",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Profile 14",
+    "userDataDir": null,
+    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 14\". CDP uses dedicated folder (never system User Data)."
+  },
+  "4": {
+    "label": "feng33feng35feng3",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Profile 3",
+    "userDataDir": null,
+    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 3\". CDP uses dedicated folder (never system User Data)."
+  },
+  "5": {
+    "label": "chbondg2",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Profile 17",
+    "userDataDir": null,
+    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 17\". CDP uses dedicated folder (never system User Data)."
+  },
+  "6": {
+    "label": "huang1988pioneer",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Profile 1",
+    "userDataDir": null,
+    "note": "Human mapping: chrome.exe --profile-directory=\"Profile 1\". CDP uses dedicated folder (never system User Data)."
+  }
+}
