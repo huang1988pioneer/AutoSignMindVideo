@@ -5,14 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.1</Version>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
-    <InformationalVersion>1.0.1</InformationalVersion>
+    <Version>1.0.2</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <InformationalVersion>1.0.2</InformationalVersion>
     <AssemblyTitle>MindVideo Flow</AssemblyTitle>
     <Product>MindVideo Flow</Product>
     <Authors>huang1988pioneer</Authors>
-    <Description>MindVideo Flow v1.0.1 — desktop check-in and token capture</Description>
+    <Description>MindVideo Flow v1.0.2 — desktop check-in and token capture</Description>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- Prevent Avalonia telemetry from crashing startup when Roaming folders are incomplete. -->
