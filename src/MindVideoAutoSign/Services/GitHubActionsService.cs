@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace MindVideoAutoSign.Services;
@@ -9,6 +10,7 @@ namespace MindVideoAutoSign.Services;
 public sealed class GitHubActionsService
 {
     private const string Workflow = "mindvideo-daily-checkin.yml";
+    private const string ReportArtifactName = "mindvideo-checkin-report";
     private const int AccountSlots = 33;
 
     public Task TriggerAsync(string repository) =>
@@ -53,39 +55,126 @@ public sealed class GitHubActionsService
 
     public async Task<IReadOnlyList<WorkflowAccountStatus>> GetAccountStatusesAsync(string repository, long runId)
     {
+        // Prefer the structured summary artifact — it always has streak/status and avoids
+        // brittle log-prefix parsing across 33 jobs.
+        var fromArtifact = await TryLoadFromReportArtifactAsync(repository, runId);
+        if (fromArtifact.Count > 0)
+            return FillSlots(fromArtifact);
+
         var output = await RunGhAsync([
             "run", "view", runId.ToString(CultureInfo.InvariantCulture),
             "--repo", repository,
             "--log"
         ]);
 
-        var rows = ParseAccountRows(output);
-        return Enumerable.Range(1, AccountSlots)
+        return FillSlots(ParseAccountRows(output));
+    }
+
+    private async Task<Dictionary<int, WorkflowAccountStatus>> TryLoadFromReportArtifactAsync(
+        string repository,
+        long runId)
+    {
+        var tempRoot = Path.Combine(
+            Path.GetTempPath(),
+            "MindVideoAutoSign",
+            "run-report",
+            runId.ToString(CultureInfo.InvariantCulture),
+            Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            Directory.CreateDirectory(tempRoot);
+            await RunGhAsync([
+                "run", "download",
+                runId.ToString(CultureInfo.InvariantCulture),
+                "--repo", repository,
+                "-n", ReportArtifactName,
+                "-D", tempRoot
+            ]);
+
+            var jsonPath = Directory
+                .EnumerateFiles(tempRoot, "checkin-daily-summary.json", SearchOption.AllDirectories)
+                .FirstOrDefault();
+            if (jsonPath is null)
+                return new Dictionary<int, WorkflowAccountStatus>();
+
+            var json = await File.ReadAllTextAsync(jsonPath);
+            var report = JsonSerializer.Deserialize<CheckinDailySummaryReport>(json, JsonOptions);
+            if (report?.Rows is null || report.Rows.Count == 0)
+                return new Dictionary<int, WorkflowAccountStatus>();
+
+            var rows = new Dictionary<int, WorkflowAccountStatus>();
+            foreach (var item in report.Rows)
+            {
+                if (item.Account is not int number || number < 1 || number > AccountSlots)
+                    continue;
+
+                var alias = !string.IsNullOrWhiteSpace(item.Label)
+                    ? item.Label.Trim()
+                    : CleanAlias(item.Name ?? $"account-{number}");
+                var status = NormalizeStatus(item.Status ?? string.Empty);
+                var streak = item.Streak;
+                var configured = !IsSkipped(status) &&
+                                 !string.Equals(item.Status, "skipped", StringComparison.OrdinalIgnoreCase);
+                var successful = configured &&
+                                 !status.Contains("fail", StringComparison.OrdinalIgnoreCase) &&
+                                 !status.Contains("失敗", StringComparison.Ordinal);
+
+                rows[number] = new WorkflowAccountStatus(number, alias, status, streak, successful, configured);
+            }
+
+            return rows;
+        }
+        catch
+        {
+            // Fall back to log parsing when artifact is missing or download fails.
+            return new Dictionary<int, WorkflowAccountStatus>();
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(tempRoot))
+                    Directory.Delete(tempRoot, recursive: true);
+            }
+            catch
+            {
+                // best-effort cleanup
+            }
+        }
+    }
+
+    private static IReadOnlyList<WorkflowAccountStatus> FillSlots(Dictionary<int, WorkflowAccountStatus> rows) =>
+        Enumerable.Range(1, AccountSlots)
             .Select(number => rows.GetValueOrDefault(number)
                 ?? new WorkflowAccountStatus(number, $"account-{number}", "尚未設定 GitHub Secret", null, false, false))
             .ToArray();
-    }
 
-    private static Dictionary<int, WorkflowAccountStatus> ParseAccountRows(string output)
+    internal static Dictionary<int, WorkflowAccountStatus> ParseAccountRows(string output)
     {
         var rows = new Dictionary<int, WorkflowAccountStatus>();
 
-        // Job Summary / markdown table:
-        // | 1 | checkin-1-goldshoot0720 | ✅ checked_in | +10 | 1234 | 5 | new today |
+        // gh run view --log prefixes every line with: jobName + stepName + ISO timestamp + "Z "
+        // Example:
+        // daily-summaryBuild daily summary...2026-08-05T18:44:44.2246071Z | 1 | checkin-1-x | ☑️ already_done | +2 | 352 | 1 | note |
+        // So match the markdown table cells anywhere on the line (not only at ^).
         foreach (Match match in Regex.Matches(
                      output,
-                     @"^\s*\|\s*(?<number>\d+)\s*\|\s*(?<alias>[^|]+)\|\s*(?<status>[^|]+)\|\s*(?<reward>[^|]*)\|\s*(?<total>[^|]*)\|\s*(?<streak>[^|]*)\|\s*(?<note>[^|]*)\|",
-                     RegexOptions.Multiline))
+                     @"\|\s*(?<number>\d+)\s*\|\s*(?<alias>[^|\r\n]+)\|\s*(?<status>[^|\r\n]+)\|\s*(?<reward>[^|\r\n]*)\|\s*(?<total>[^|\r\n]*)\|\s*(?<streak>[^|\r\n]*)\|\s*(?<note>[^|\r\n]*)\|"))
         {
-            AddRow(rows, match.Groups["number"].Value, match.Groups["alias"].Value, match.Groups["status"].Value, match.Groups["streak"].Value);
+            AddRow(
+                rows,
+                match.Groups["number"].Value,
+                match.Groups["alias"].Value,
+                match.Groups["status"].Value,
+                match.Groups["streak"].Value);
         }
 
-        // Console table line:
+        // Console table line (no streak column in current summarize script):
         // - #1 checkin-1-goldshoot0720: checked_in | Δ +10 | total 1234 | note
         foreach (Match match in Regex.Matches(
                      output,
-                     @"^\s*-\s*#(?<number>\d+)\s+(?<alias>[^:]+):\s*(?<status>[^\|]+)",
-                     RegexOptions.Multiline))
+                     @"-\s*#(?<number>\d+)\s+(?<alias>[^:\r\n]+):\s*(?<status>[^\|\r\n]+)"))
         {
             var numberText = match.Groups["number"].Value;
             if (!int.TryParse(numberText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
@@ -95,7 +184,6 @@ public sealed class GitHubActionsService
             var status = match.Groups["status"].Value.Trim();
             var streakMatch = Regex.Match(match.Value, @"streak\s+(?<streak>\d+)", RegexOptions.IgnoreCase);
             int? streak = streakMatch.Success && int.TryParse(streakMatch.Groups["streak"].Value, out var s) ? s : null;
-            // Prefer streak from nearby "total X | streak Y" patterns if present later in log.
             AddRow(rows, numberText, match.Groups["alias"].Value, status, streak?.ToString() ?? string.Empty);
         }
 
@@ -103,8 +191,7 @@ public sealed class GitHubActionsService
         // - #01 alias: ✅ ... | 連續 12 |
         foreach (Match match in Regex.Matches(
                      output,
-                     @"-\s*#(?<number>\d+)\s+(?<alias>[^:\r\n]+):\s*.*?\|\s*連續\s+(?<days>\d+)\s*\|",
-                     RegexOptions.Multiline))
+                     @"-\s*#(?<number>\d+)\s+(?<alias>[^:\r\n]+):\s*.*?\|\s*連續\s+(?<days>\d+)\s*\|"))
         {
             var numberText = match.Groups["number"].Value;
             if (!int.TryParse(numberText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
@@ -112,7 +199,31 @@ public sealed class GitHubActionsService
 
             var alias = match.Groups["alias"].Value.Trim();
             var days = int.Parse(match.Groups["days"].Value, CultureInfo.InvariantCulture);
-            rows[number] = new WorkflowAccountStatus(number, alias, "已簽到", days, true, true);
+            if (rows.TryGetValue(number, out var existing) && existing.Streak is not null)
+                continue;
+
+            rows[number] = new WorkflowAccountStatus(number, CleanAlias(alias), "已簽到", days, true, true);
+        }
+
+        // Skipped section: No secret / token: **#22, 23, 24, 25, ...**
+        foreach (Match match in Regex.Matches(
+                     output,
+                     @"No secret\s*/\s*token:\s*\*?\*?#?(?<ids>[\d,\s]+)\*?\*?",
+                     RegexOptions.IgnoreCase))
+        {
+            foreach (Match id in Regex.Matches(match.Groups["ids"].Value, @"\d+"))
+            {
+                if (!int.TryParse(id.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
+                    continue;
+                if (rows.ContainsKey(number)) continue;
+                rows[number] = new WorkflowAccountStatus(
+                    number,
+                    $"account-{number}",
+                    "略過（未設定 Secret）",
+                    null,
+                    false,
+                    false);
+            }
         }
 
         return rows;
@@ -127,12 +238,32 @@ public sealed class GitHubActionsService
     {
         if (!int.TryParse(numberText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
             return;
+        if (number < 1 || number > AccountSlots)
+            return;
+
+        // Header / metric rows must not overwrite real account data.
+        var statusProbe = statusRaw.Trim();
+        if (statusProbe.Equals("Status", StringComparison.OrdinalIgnoreCase) ||
+            statusProbe.Equals("---", StringComparison.Ordinal) ||
+            statusProbe.StartsWith("---", StringComparison.Ordinal) ||
+            statusProbe.Equals("Count", StringComparison.OrdinalIgnoreCase))
+            return;
 
         var alias = CleanAlias(aliasRaw);
         var status = NormalizeStatus(statusRaw);
-        int? streak = int.TryParse(streakRaw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var s) ? s : null;
+        int? streak = int.TryParse(streakRaw.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var s)
+            ? s
+            : null;
         var configured = !IsSkipped(status);
-        var successful = configured && !status.Contains("fail", StringComparison.OrdinalIgnoreCase) && !status.Contains("失敗", StringComparison.Ordinal);
+        var successful = configured &&
+                         !status.Contains("fail", StringComparison.OrdinalIgnoreCase) &&
+                         !status.Contains("失敗", StringComparison.Ordinal);
+
+        // Prefer a row that already has streak if we parse duplicates.
+        if (rows.TryGetValue(number, out var existing) &&
+            existing.Streak is not null &&
+            streak is null)
+            return;
 
         rows[number] = new WorkflowAccountStatus(number, alias, status, streak, successful, configured);
     }
@@ -142,7 +273,13 @@ public sealed class GitHubActionsService
         var text = alias.Trim();
         // checkin-1-goldshoot0720 → goldshoot0720
         var match = Regex.Match(text, @"^checkin-\d+-(.+)$", RegexOptions.IgnoreCase);
-        return match.Success ? match.Groups[1].Value.Trim() : text;
+        if (match.Success) return match.Groups[1].Value.Trim();
+
+        // MINDVIDEO_TOKEN1 → account-1 style fallback handled by caller
+        match = Regex.Match(text, @"^MINDVIDEO_TOKEN(\d+)$", RegexOptions.IgnoreCase);
+        if (match.Success) return $"account-{match.Groups[1].Value}";
+
+        return text;
     }
 
     private static string NormalizeStatus(string status)
@@ -162,7 +299,11 @@ public sealed class GitHubActionsService
         status.Contains("skipped", StringComparison.OrdinalIgnoreCase) ||
         status.Contains("尚未設定", StringComparison.Ordinal);
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
 
     private static async Task<string> RunGhAsync(IEnumerable<string> arguments)
     {
@@ -205,6 +346,20 @@ public sealed class GitHubActionsService
         foreach (var argument in arguments)
             startInfo.ArgumentList.Add(argument);
         return new Process { StartInfo = startInfo };
+    }
+
+    private sealed class CheckinDailySummaryReport
+    {
+        public List<CheckinDailySummaryRow>? Rows { get; set; }
+    }
+
+    private sealed class CheckinDailySummaryRow
+    {
+        public int? Account { get; set; }
+        public string? Name { get; set; }
+        public string? Label { get; set; }
+        public string? Status { get; set; }
+        public int? Streak { get; set; }
     }
 }
 

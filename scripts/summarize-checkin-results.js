@@ -290,7 +290,7 @@ function printConsoleTable(rows, counts, gained) {
     console.log(
       `- #${row.account ?? "?"} ${shortLabel(row)}: ${row.status} | Δ ${fmtDelta(
         row.creditsDelta
-      )} | total ${fmtNum(row.totalCredits)} | ${noteForRow(row)}`
+      )} | total ${fmtNum(row.totalCredits)} | streak ${fmtNum(row.streak)} | ${noteForRow(row)}`
     );
   }
   console.log("============================================\n");
