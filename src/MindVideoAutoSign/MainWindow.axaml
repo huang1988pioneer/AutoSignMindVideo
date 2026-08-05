@@ -57,13 +57,13 @@
         </Grid>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Margin="0,26,0,0">
-          <Border Background="#10192A" CornerRadius="10" Padding="18,16">
+          <Border Background="#10192A" CornerRadius="10" Padding="18,16" Margin="0,0,12,0">
             <StackPanel Spacing="6"><TextBlock Text="目前狀態" Foreground="#8295B4" FontSize="12" /><TextBlock Text="{Binding SelectedAccount.StatusLabel}" Foreground="{Binding SelectedAccount.StatusBrush}" FontSize="21" FontWeight="SemiBold" /></StackPanel>
           </Border>
-          <Border Grid.Column="1" Background="#10192A" CornerRadius="10" Padding="18,16">
+          <Border Grid.Column="1" Background="#10192A" CornerRadius="10" Padding="18,16" Margin="4,0,8,0">
             <StackPanel Spacing="6"><TextBlock Text="總點數" Foreground="#8295B4" FontSize="12" /><TextBlock Text="{Binding SelectedAccount.CreditsLabel}" Foreground="#F3F7FF" FontSize="21" FontWeight="SemiBold" /></StackPanel>
           </Border>
-          <Border Grid.Column="2" Background="#10192A" CornerRadius="10" Padding="18,16">
+          <Border Grid.Column="2" Background="#10192A" CornerRadius="10" Padding="18,16" Margin="4,0,0,0">
             <StackPanel Spacing="6"><TextBlock Text="連續簽到" Foreground="#8295B4" FontSize="12" /><TextBlock Text="{Binding SelectedAccount.StreakLabel}" Foreground="#F3F7FF" FontSize="21" FontWeight="SemiBold" /></StackPanel>
           </Border>
         </Grid>
