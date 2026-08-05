@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MindVideoAutoSign.MainWindow"
-        Title="MindVideo Flow"
+        Title="MindVideo Flow v1.0.0"
         Width="1000" Height="860"
         MinWidth="1000" MinHeight="860"
         Background="#F4F7FB">
@@ -44,6 +44,7 @@
       <StackPanel Spacing="20">
         <StackPanel Spacing="6">
           <TextBlock Text="MindVideo Flow" FontSize="24" FontWeight="Bold" Foreground="White" />
+          <TextBlock Text="v1.0.0" FontSize="12" Foreground="#A9D2D0" Margin="0,-4,0,0" />
           <TextBlock Text="自動簽到控制台" Foreground="#A9CCE8" />
           <TextBlock Text="管理 Token、GitHub Actions 與每日簽到結果。"
                      TextWrapping="Wrap" FontSize="12" Foreground="#8FB9DB" Margin="0,8,0,0" />
@@ -144,7 +145,7 @@
         <StackPanel x:Name="LoginView" IsVisible="False" Spacing="18">
           <TextBlock Text="更新登入狀態" FontSize="30" FontWeight="SemiBold" Foreground="#132A42" />
           <TextBlock Classes="muted"
-                     Text="瀏覽器開啟後完成 MindVideo 登入；工具會自動擷取 Bearer Token。你也可以手動貼上 Token，再更新到 GitHub Secret。"
+                     Text="CDP 擷取必須使用獨立 --user-data-dir（不可用系統 Chrome\User Data 或 Profile 1/2）。可自訂 chrome.exe 與專用資料夾；首次請用 Google 登入，之後 cookie 會留在該資料夾。維持 ≥5 秒後會擷取 Token。"
                      TextWrapping="Wrap" />
 
           <Border Classes="panel">
@@ -157,11 +158,41 @@
                 <TextBlock x:Name="SecretNameText" FontFamily="Consolas" Foreground="#125799" />
               </Border>
 
+              <TextBlock Text="Chrome CDP 啟動設定（可自訂）" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" Text="chrome.exe 路徑" FontSize="12" />
+              <TextBox x:Name="ChromeExeBox"
+                       Watermark="C:\Program Files\Google\Chrome\Application\chrome.exe"
+                       LostFocus="ChromeSettings_OnLostFocus" />
+              <TextBlock Classes="muted" Text="CDP user-data-dir（必須獨立資料夾；禁止 Chrome\User Data）" FontSize="12" />
+              <TextBox x:Name="ChromeUserDataBox"
+                       Watermark="%LOCALAPPDATA%\MindVideo Auto Sign\chrome-cdp\account-01"
+                       LostFocus="ChromeSettings_OnLostFocus" />
+              <TextBlock Classes="muted" Text="備註名稱（選填，不影響 CDP；舊版 Profile 名稱可寫這裡）" FontSize="12" />
+              <TextBox x:Name="ChromeProfileDirBox"
+                       Watermark="例如 goldshoot0720 / Profile 2（僅備註）"
+                       Width="360"
+                       HorizontalAlignment="Left"
+                       LostFocus="ChromeSettings_OnLostFocus" />
+              <TextBlock Classes="muted" Text="實際啟動指令預覽（符合 Chrome remote debugging 規範）" FontSize="12" />
+              <Border Background="#F7F9FA" CornerRadius="7" Padding="12,8">
+                <TextBlock x:Name="ChromeCommandPreview"
+                           FontFamily="Consolas"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="#334155" />
+              </Border>
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SaveChromeProfileButton" Click="SaveChromeProfileButton_OnClick">儲存此帳號 Chrome 設定</Button>
+                <Button x:Name="ResetChromeProfileButton" Click="ResetChromeProfileButton_OnClick">還原預設</Button>
+              </StackPanel>
+
+              <Border Height="1" Background="#DCE5EF" Margin="0,4" />
+
               <TextBlock Classes="muted" Text="MindVideo Token（密碼顯示）" FontSize="12" />
               <TextBox x:Name="TokenBox" PasswordChar="•" Watermark="貼上或由瀏覽器擷取後會顯示在這裡" />
 
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="StartLoginButton" Classes="primary" Click="StartLoginButton_OnClick">開始登入並擷取 Token</Button>
+                <Button x:Name="StartLoginButton" Classes="primary" Click="StartLoginButton_OnClick">Google 登入並擷取 Token</Button>
                 <Button x:Name="CopyTokenButton" IsEnabled="False" Click="CopyTokenButton_OnClick">複製 Token</Button>
                 <Button x:Name="CopySecretButton" Click="CopySecretButton_OnClick">複製 Secret 名稱</Button>
               </StackPanel>

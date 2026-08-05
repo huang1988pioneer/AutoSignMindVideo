@@ -6,12 +6,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
     <AssemblyTitle>MindVideo Flow</AssemblyTitle>
     <Product>MindVideo Flow</Product>
     <Authors>huang1988pioneer</Authors>
-    <Description>MindVideo auto check-in desktop console</Description>
+    <Description>MindVideo Flow v1.0.0 — desktop check-in and token capture</Description>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Prevent Avalonia telemetry from crashing startup when Roaming folders are incomplete. -->
+    <AvaloniaTelemetryEnabled>false</AvaloniaTelemetryEnabled>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.2.3" />
@@ -23,6 +28,7 @@
     <Content Include="..\..\package.json" Link="package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\scripts\**\*" Link="scripts\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\..\accounts.json" Link="accounts.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\accounts.json')" />
+    <Content Include="..\..\chrome-profiles.json" Link="chrome-profiles.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\chrome-profiles.json')" />
     <Content Include="..\..\checkin.js" Link="checkin.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Condition="Exists('..\..\checkin.js')" />
   </ItemGroup>
 </Project>

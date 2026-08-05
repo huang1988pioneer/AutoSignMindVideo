@@ -16,25 +16,64 @@ public partial class MainWindow : Window
     private readonly GitHubActionsService _github = new();
     private readonly MindVideoApiService _api = new();
     private readonly FileAccountStore _localTokens = new();
+    private readonly ChromeProfileStore _chromeProfiles;
     private readonly Dictionary<int, TextBox> _aliasInputs = [];
     private readonly Dictionary<int, string> _aliases;
     private readonly Dictionary<int, string> _tokens = [];
+    private readonly Dictionary<int, ChromeProfileConfig> _chromeByAccount = [];
+    private bool _chromeUiLoading;
 
     public MainWindow()
     {
         InitializeComponent();
-        _aliases = LoadAliases();
-        AccountComboBox.ItemsSource = Enumerable.Range(1, AccountCount)
-            .Select(i =>
+        try
+        {
+            _chromeProfiles = new ChromeProfileStore(_workspace);
+            foreach (var pair in _chromeProfiles.LoadAll())
+                _chromeByAccount[pair.Key] = pair.Value;
+
+            _aliases = LoadAliases();
+            if (AccountComboBox is not null)
             {
-                var alias = _aliases.GetValueOrDefault(i);
-                return string.IsNullOrWhiteSpace(alias) ? $"帳號 {i:00}" : $"帳號 {i:00} · {alias}";
-            })
-            .ToArray();
-        BuildAliasList();
-        ConfiguredMetric.Text = $"{_aliases.Count(pair => !IsDefaultAlias(pair.Key, pair.Value))} 個別名";
-        _ = LoadLocalTokensAsync();
-        UpdateAccountDisplay();
+                AccountComboBox.ItemsSource = Enumerable.Range(1, AccountCount)
+                    .Select(i =>
+                    {
+                        var alias = _aliases.GetValueOrDefault(i);
+                        return string.IsNullOrWhiteSpace(alias) ? $"帳號 {i:00}" : $"帳號 {i:00} · {alias}";
+                    })
+                    .ToArray();
+                if (AccountComboBox.SelectedIndex < 0)
+                    AccountComboBox.SelectedIndex = 0;
+            }
+
+            BuildAliasList();
+            if (ConfiguredMetric is not null)
+                ConfiguredMetric.Text = $"{_aliases.Count(pair => !IsDefaultAlias(pair.Key, pair.Value))} 個別名";
+            _ = LoadLocalTokensAsync();
+            UpdateAccountDisplay();
+        }
+        catch (Exception ex)
+        {
+            // Keep window open with a visible error instead of process exit.
+            if (LoginStatus is not null)
+                LoginStatus.Text = $"介面初始化失敗：{ex.Message}";
+            try
+            {
+                var folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MindVideo Auto Sign",
+                    "logs");
+                Directory.CreateDirectory(folder);
+                File.AppendAllText(
+                    Path.Combine(folder, "startup-crash.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MainWindow init{Environment.NewLine}{ex}{Environment.NewLine}{Environment.NewLine}");
+            }
+            catch
+            {
+                // ignore
+            }
+            throw;
+        }
     }
 
     private int AccountNumber => Math.Max(1, AccountComboBox.SelectedIndex + 1);
@@ -63,14 +102,135 @@ public partial class MainWindow : Window
     private void UpdateAccountDisplay()
     {
         if (AccountComboBox is null || AccountComboBox.SelectedIndex < 0) return;
+        if (SecretNameText is null || TokenBox is null) return;
 
         var label = _aliases.GetValueOrDefault(AccountNumber);
-        SecretNameText.Text = string.IsNullOrWhiteSpace(label) ? SecretName : $"{SecretName}  ·  {label}";
+        var chrome = GetChromeConfig(AccountNumber);
+        var dataDir = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
+        var chromeHint = $"CDP {Path.GetFileName(dataDir)}";
+        SecretNameText.Text = string.IsNullOrWhiteSpace(label)
+            ? $"{SecretName}  ·  {chromeHint}"
+            : $"{SecretName}  ·  {label}  ·  {chromeHint}";
         TokenBox.Text = _tokens.GetValueOrDefault(AccountNumber) ?? string.Empty;
-        CopyTokenButton.IsEnabled = !string.IsNullOrWhiteSpace(TokenBox.Text);
-        PointsStatus.Text = string.IsNullOrWhiteSpace(TokenBox.Text)
-            ? "需要先設定此帳號的 Token。"
-            : "已載入本機 Token，可讀取狀態或直接簽到。";
+        if (CopyTokenButton is not null)
+            CopyTokenButton.IsEnabled = !string.IsNullOrWhiteSpace(TokenBox.Text);
+        if (PointsStatus is not null)
+        {
+            PointsStatus.Text = string.IsNullOrWhiteSpace(TokenBox.Text)
+                ? "需要先設定此帳號的 Token。"
+                : "已載入本機 Token，可讀取狀態或直接簽到。";
+        }
+        LoadChromeFields(chrome);
+    }
+
+    private ChromeProfileConfig GetChromeConfig(int accountNumber)
+    {
+        if (_chromeByAccount.TryGetValue(accountNumber, out var config))
+            return config;
+        return ChromeProfileStore.CreateDefault(accountNumber);
+    }
+
+    private void LoadChromeFields(ChromeProfileConfig config)
+    {
+        if (ChromeExeBox is null) return;
+        _chromeUiLoading = true;
+        try
+        {
+            ChromeExeBox.Text = config.ExecutablePath;
+            ChromeProfileDirBox.Text = config.ProfileDirectory;
+            ChromeUserDataBox.Text = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, config.UserDataDir);
+            ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(config, AccountNumber);
+        }
+        finally
+        {
+            _chromeUiLoading = false;
+        }
+    }
+
+    private ChromeProfileConfig ReadChromeFieldsFromUi()
+    {
+        var userData = string.IsNullOrWhiteSpace(ChromeUserDataBox.Text)
+            ? null
+            : ChromeUserDataBox.Text.Trim().Trim('"');
+        if (ChromeProfileStore.IsForbiddenSystemChromeUserDataDir(userData))
+            userData = ChromeProfileStore.DefaultCdpUserDataDir(AccountNumber);
+
+        return new ChromeProfileConfig
+        {
+            ExecutablePath = string.IsNullOrWhiteSpace(ChromeExeBox.Text)
+                ? ChromeProfileStore.DefaultExecutablePath
+                : ChromeExeBox.Text.Trim().Trim('"'),
+            ProfileDirectory = string.IsNullOrWhiteSpace(ChromeProfileDirBox.Text)
+                ? ChromeProfileStore.DefaultProfileDirectory
+                : ChromeProfileDirBox.Text.Trim().Trim('"'),
+            UserDataDir = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, userData)
+        };
+    }
+
+    private void ChromeSettings_OnLostFocus(object? sender, RoutedEventArgs e)
+    {
+        if (_chromeUiLoading) return;
+        var config = ReadChromeFieldsFromUi();
+        _chromeByAccount[AccountNumber] = config;
+        if (ChromeUserDataBox is not null)
+            ChromeUserDataBox.Text = config.UserDataDir ?? ChromeProfileStore.DefaultCdpUserDataDir(AccountNumber);
+        ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(config, AccountNumber);
+        SecretNameText.Text = BuildSecretNameText(config);
+    }
+
+    private string BuildSecretNameText(ChromeProfileConfig chrome)
+    {
+        var label = _aliases.GetValueOrDefault(AccountNumber);
+        var dataDir = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
+        var chromeHint = $"CDP {Path.GetFileName(dataDir)}";
+        return string.IsNullOrWhiteSpace(label)
+            ? $"{SecretName}  ·  {chromeHint}"
+            : $"{SecretName}  ·  {label}  ·  {chromeHint}";
+    }
+
+    private async void SaveChromeProfileButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var config = ReadChromeFieldsFromUi();
+            if (!File.Exists(config.ExecutablePath))
+            {
+                LoginStatus.Text = $"找不到 chrome.exe：{config.ExecutablePath}";
+                return;
+            }
+
+            _chromeByAccount[AccountNumber] = config;
+            await _chromeProfiles.SaveAccountAsync(AccountNumber, config);
+            await _chromeProfiles.SyncWorkspaceFileAsync(_chromeByAccount, _aliases);
+            ChromeUserDataBox.Text = config.UserDataDir;
+            ChromeCommandPreview.Text = ChromeProfileStore.FormatCommandPreview(config, AccountNumber);
+            SecretNameText.Text = BuildSecretNameText(config);
+            LoginStatus.Text =
+                $"已儲存帳號 {AccountNumber:00} 的 CDP 設定：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
+        }
+        catch (Exception ex)
+        {
+            LoginStatus.Text = $"儲存 Chrome 設定失敗：{ex.Message}";
+        }
+    }
+
+    private async void ResetChromeProfileButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var config = ChromeProfileStore.CreateDefault(AccountNumber);
+            _chromeByAccount[AccountNumber] = config;
+            await _chromeProfiles.SaveAccountAsync(AccountNumber, config);
+            await _chromeProfiles.SyncWorkspaceFileAsync(_chromeByAccount, _aliases);
+            LoadChromeFields(config);
+            SecretNameText.Text = BuildSecretNameText(config);
+            LoginStatus.Text =
+                $"已還原帳號 {AccountNumber:00} 預設：{ChromeProfileStore.FormatCommandPreview(config, AccountNumber)}";
+        }
+        catch (Exception ex)
+        {
+            LoginStatus.Text = $"還原 Chrome 預設失敗：{ex.Message}";
+        }
     }
 
     private async Task LoadLocalTokensAsync()
@@ -124,15 +284,35 @@ public partial class MainWindow : Window
             Directory.CreateDirectory(Path.GetDirectoryName(TokenFile)!);
             if (File.Exists(TokenFile)) File.Delete(TokenFile);
 
-            LoginStatus.Text = "瀏覽器已開啟。請完成 MindVideo 登入；工具會在偵測到 Token 後自動擷取。";
-            await RunProcessAsync("node", [
+            var chrome = ReadChromeFieldsFromUi();
+            var cdpUserData = ChromeProfileStore.ResolveCdpUserDataDir(AccountNumber, chrome.UserDataDir);
+            chrome.UserDataDir = cdpUserData;
+            _chromeByAccount[AccountNumber] = chrome;
+            await _chromeProfiles.SaveAccountAsync(AccountNumber, chrome);
+            await _chromeProfiles.SyncWorkspaceFileAsync(_chromeByAccount, _aliases);
+            Directory.CreateDirectory(cdpUserData);
+
+            if (!File.Exists(chrome.ExecutablePath))
+                throw new FileNotFoundException($"找不到 chrome.exe：{chrome.ExecutablePath}");
+
+            LoginStatus.Text =
+                $"將以獨立 CDP 設定檔啟動（非系統 Profile）：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token。";
+
+            // Never pass system --profile-directory for CDP. Chrome rejects default User Data.
+            var captureArgs = new List<string>
+            {
                 "scripts/capture-token-gui.mjs",
                 "--account", AccountNumber.ToString(),
-                "--output", TokenFile
-            ]);
+                "--output", TokenFile,
+                "--executable-path", chrome.ExecutablePath,
+                "--user-data-dir", cdpUserData
+            };
+
+            await RunProcessAsync("node", captureArgs);
 
             if (!File.Exists(TokenFile))
-                throw new InvalidOperationException("未找到擷取的 Token 檔。請確認已在瀏覽器中登入 MindVideo。");
+                throw new InvalidOperationException(
+                    "未找到已驗證的 Token 檔。請確認已在瀏覽器中完整登入 MindVideo（非僅停留在登入頁）。");
 
             var token = (await File.ReadAllTextAsync(TokenFile)).Trim();
             if (string.IsNullOrWhiteSpace(token))
@@ -142,8 +322,9 @@ public partial class MainWindow : Window
             _tokens[AccountNumber] = token;
             await PersistLocalTokensAsync();
             CopyTokenButton.IsEnabled = true;
-            LoginStatus.Text = $"完成。已擷取 Token（{MaskToken(token)}），可更新到 GitHub Secret {SecretName}。";
-            PointsStatus.Text = "Token 已就緒，可讀取狀態或直接簽到。";
+            LoginStatus.Text =
+                $"完成。已確認登入維持 ≥5 秒並擷取有效 Token（{MaskToken(token)}），可更新到 GitHub Secret {SecretName}。";
+            PointsStatus.Text = "Token 已驗證就緒，可讀取狀態或直接簽到。";
         }
         catch (Exception ex)
         {
@@ -524,7 +705,13 @@ public partial class MainWindow : Window
         var output = await outputTask;
         var error = await errorTask;
         if (process.ExitCode != 0)
-            throw new InvalidOperationException((string.IsNullOrWhiteSpace(error) ? output : error).Trim().Truncate(900));
+        {
+            // Prefer stderr, but keep stdout (CDP diagnostics are often on stdout).
+            var combined = string.Join(
+                "\n",
+                new[] { error?.Trim(), output?.Trim() }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            throw new InvalidOperationException(combined.Truncate(4000));
+        }
         return output;
     }
 

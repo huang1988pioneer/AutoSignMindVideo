@@ -3,6 +3,7 @@
 logs/
 artifacts/
 dist/
+.browser-profiles/
 .DS_Store
 node_modules/
 bin/
