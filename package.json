@@ -1,0 +1,17 @@
+{
+  "name": "mindvideo-auto-sign",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "checkin": "node checkin.js",
+    "summary": "node scripts/summarize-checkin-results.js",
+    "capture:tokens": "node scripts/capture-mindvideo-tokens.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

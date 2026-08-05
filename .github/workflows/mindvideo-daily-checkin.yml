@@ -1,0 +1,222 @@
+name: MindVideo Daily Check-in
+
+on:
+  schedule:
+    # Asia/Taipei 05:08 every day.
+    - cron: "8 21 * * *"
+    # Asia/Taipei 11:08 every day.
+    - cron: "8 3 * * *"
+    # Asia/Taipei 17:08 every day.
+    - cron: "8 9 * * *"
+    # Asia/Taipei 23:08 every day.
+    - cron: "8 15 * * *"
+  workflow_dispatch:
+
+jobs:
+  checkin:
+    # Job names use accounts.json labels, e.g. checkin-1-goldshoot0720
+    name: checkin-${{ matrix.account }}-${{ matrix.label }}
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '8 21 * * *' || github.event.schedule == '8 3 * * *' || github.event.schedule == '8 9 * * *' || github.event.schedule == '8 15 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      # Cap burst size so MindVideo is less likely to rate-limit parallel jobs.
+      max-parallel: 8
+      # Keep labels in sync with repo-root accounts.json
+      matrix:
+        include:
+          - account: 1
+            label: goldshoot0720
+          - account: 2
+            label: abuhg17
+          - account: 3
+            label: fengtuprinfo
+          - account: 4
+            label: feng33feng35feng3
+          - account: 5
+            label: chbondg2
+          - account: 6
+            label: huang1988pioneer
+          - account: 7
+            label: chbondg_outloook
+          - account: 8
+            label: gaokaolevel3iptopscorer_outlook
+          - account: 9
+            label: huang1988pioneer_outloook
+          - account: 10
+            label: fengtuta_tuta
+          - account: 11
+            label: fengfence_fence
+          - account: 12
+            label: samafengtu
+          - account: 13
+            label: fengtusama
+          - account: 14
+            label: fengwithting0831
+          - account: 15
+            label: fengwithfeng1127
+          - account: 16
+            label: fengwithtu1127
+          - account: 17
+            label: akaonda333
+          - account: 18
+            label: fbussinesseng
+          - account: 19
+            label: engdictatorf
+          - account: 20
+            label: flottojackpoteng
+          - account: 21
+            label: tushenbyfengbro
+          - account: 22
+            label: account-22
+          - account: 23
+            label: account-23
+          - account: 24
+            label: account-24
+          - account: 25
+            label: account-25
+          - account: 26
+            label: account-26
+          - account: 27
+            label: account-27
+          - account: 28
+            label: account-28
+          - account: 29
+            label: account-29
+          - account: 30
+            label: account-30
+          - account: 31
+            label: account-31
+          - account: 32
+            label: account-32
+          - account: 33
+            label: account-33
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run MindVideo check-in
+        env:
+          MINDVIDEO_ACCOUNT: ${{ matrix.account }}
+          MINDVIDEO_ACCOUNT_LABEL: ${{ matrix.label }}
+          MINDVIDEO_SECRET_NAME: MINDVIDEO_TOKEN${{ matrix.account }}
+          MINDVIDEO_TOKEN: ${{ secrets[format('MINDVIDEO_TOKEN{0}', matrix.account)] }}
+          MINDVIDEO_LANG: zh-TW
+          MINDVIDEO_RESULT_DIR: artifacts
+          GH_SECRETS_TOKEN: ${{ secrets.GH_SECRETS_TOKEN }}
+        run: |
+          mkdir -p artifacts
+
+          if [ -z "$MINDVIDEO_TOKEN" ]; then
+            echo "$MINDVIDEO_SECRET_NAME ($MINDVIDEO_ACCOUNT_LABEL) is not configured; writing skipped result."
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const account = Number(process.env.MINDVIDEO_ACCOUNT);
+          const row = {
+            account,
+            name: process.env.MINDVIDEO_SECRET_NAME,
+            label: process.env.MINDVIDEO_ACCOUNT_LABEL || null,
+            status: "skipped",
+            message: "token not configured",
+            creditsDelta: null,
+            totalCredits: null,
+            streak: null,
+            dailyReward: null,
+            finishedAt: new Date().toISOString(),
+            runId: process.env.GITHUB_RUN_ID || null,
+            job: process.env.GITHUB_JOB || null,
+          };
+          fs.mkdirSync("artifacts", { recursive: true });
+          fs.writeFileSync("artifacts/checkin-result.json", `${JSON.stringify(row, null, 2)}\n`);
+          NODE
+            exit 0
+          fi
+
+          # Spread matrix starts in shell (GH expressions have no arithmetic *).
+          # base offset by account + small random jitter so jobs desync a bit.
+          extra=$((RANDOM % 4000))
+          export MINDVIDEO_STAGGER_MS=$((MINDVIDEO_ACCOUNT * 2500 + extra))
+          echo "Stagger: ${MINDVIDEO_STAGGER_MS}ms (account base + ${extra}ms jitter)"
+
+          # Always keep a result artifact even when check-in exits non-zero.
+          set +e
+          npm run checkin
+          code=$?
+          set -e
+
+          if [ ! -f artifacts/checkin-result.json ]; then
+            node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          const account = Number(process.env.MINDVIDEO_ACCOUNT);
+          const row = {
+            account,
+            name: process.env.MINDVIDEO_SECRET_NAME,
+            label: process.env.MINDVIDEO_ACCOUNT_LABEL || null,
+            status: "failed",
+            message: "check-in exited without writing result artifact",
+            creditsDelta: null,
+            totalCredits: null,
+            streak: null,
+            dailyReward: null,
+            finishedAt: new Date().toISOString(),
+            runId: process.env.GITHUB_RUN_ID || null,
+            job: process.env.GITHUB_JOB || null,
+          };
+          fs.mkdirSync("artifacts", { recursive: true });
+          fs.writeFileSync("artifacts/checkin-result.json", `${JSON.stringify(row, null, 2)}\n`);
+          NODE
+          fi
+
+          exit $code
+      - name: Upload account result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkin-result-${{ matrix.account }}-${{ matrix.label }}
+          path: artifacts/checkin-result.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  daily-summary:
+    name: daily-summary
+    needs: checkin
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Download all account results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: checkin-result-*
+          path: collected
+          merge-multiple: false
+      - name: Build daily summary (Job Summary)
+        env:
+          MINDVIDEO_SUMMARY_DIR: artifacts
+          MINDVIDEO_EXPECTED_ACCOUNTS: "33"
+        run: |
+          # Writes LitMedia-style markdown to GITHUB_STEP_SUMMARY + artifacts/
+          npm run summary -- collected
+          echo "----- preview -----"
+          if [ -f artifacts/checkin-daily-summary.md ]; then
+            cat artifacts/checkin-daily-summary.md
+          else
+            echo "summary markdown missing"
+            exit 1
+          fi
+      - name: Upload daily summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mindvideo-checkin-report
+          path: |
+            artifacts/checkin-daily-summary.md
+            artifacts/checkin-daily-summary.json
+          if-no-files-found: warn
+          retention-days: 30
