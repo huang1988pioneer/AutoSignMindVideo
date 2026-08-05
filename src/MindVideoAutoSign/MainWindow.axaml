@@ -145,7 +145,7 @@
         <StackPanel x:Name="LoginView" IsVisible="False" Spacing="18">
           <TextBlock Text="更新登入狀態" FontSize="30" FontWeight="SemiBold" Foreground="#132A42" />
           <TextBlock Classes="muted"
-                     Text="Chrome：CDP 必須用獨立 user-data-dir（不可用系統 Chrome\User Data）。Firefox：Playwright persistent profile（建議獨立資料夾；可指定本機 Firefox profile，但需先關閉 Firefox）。首次 Google 登入後 cookie 會留在專用資料夾。維持 ≥5 秒後擷取 Token。"
+                     Text="Chrome：CDP 必須用獨立 user-data-dir（不可用系統 Chrome\User Data）。Firefox：使用 Playwright 內建 Firefox（執行檔請留空；系統 firefox.exe 會卡住且無法跳轉 mindvideo.ai）。啟動後會開啟 https://www.mindvideo.ai/auth/signin/ 並顯示頁內登入提示。維持 ≥5 秒後擷取 Token。"
                      TextWrapping="Wrap" />
 
           <Border Classes="panel">

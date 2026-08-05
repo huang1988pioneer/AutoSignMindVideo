@@ -34,6 +34,12 @@ public sealed class ChromeProfileStore
     public const string DefaultFirefoxExecutablePath =
         @"C:\Program Files\Mozilla Firefox\firefox.exe";
 
+    /// <summary>
+    /// Playwright ships a patched Firefox. Stock Mozilla firefox.exe is not compatible
+    /// with launchPersistentContext (hangs / no navigation). Leave path empty for bundled.
+    /// </summary>
+    public const string PlaywrightFirefoxLabel = "(Playwright bundled Firefox)";
+
     public const string DefaultProfileDirectory = "Default";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -70,7 +76,8 @@ public sealed class ChromeProfileStore
     public static ChromeProfileConfig CreateFirefoxDefault(int accountNumber = 1) => new()
     {
         Browser = BrowserFirefox,
-        ExecutablePath = FindFirefoxExecutable() ?? DefaultFirefoxExecutablePath,
+        // Must use Playwright's patched Firefox, not stock Mozilla firefox.exe.
+        ExecutablePath = string.Empty,
         ProfileDirectory = "firefox",
         UserDataDir = DefaultFirefoxProfileDir(accountNumber)
     };
@@ -98,6 +105,44 @@ public sealed class ChromeProfileStore
             DefaultFirefoxExecutablePath
         };
         return candidates.FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>
+    /// True when path is stock Mozilla Firefox (or empty / label) and must not be passed to Playwright.
+    /// Playwright only works reliably with its own ms-playwright firefox binary.
+    /// </summary>
+    public static bool IsStockMozillaFirefoxPath(string? executablePath)
+    {
+        var exe = (executablePath ?? string.Empty).Trim().Trim('"');
+        if (string.IsNullOrWhiteSpace(exe)) return true;
+        if (exe.Equals(PlaywrightFirefoxLabel, StringComparison.OrdinalIgnoreCase)) return true;
+        if (exe.Contains("ms-playwright", StringComparison.OrdinalIgnoreCase)) return false;
+        // Explicit Playwright label variants
+        if (exe.Contains("playwright", StringComparison.OrdinalIgnoreCase) &&
+            !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var file = Path.GetFileName(exe);
+        if (!file.Equals("firefox.exe", StringComparison.OrdinalIgnoreCase) &&
+            !file.Equals("firefox", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Stock install locations / any non-playwright firefox.exe
+        var lower = exe.Replace('/', '\\').ToLowerInvariant();
+        if (lower.Contains(@"\mozilla firefox\") || lower.Contains(@"\firefox\"))
+            return true;
+        // Bare "firefox.exe" without a playwright root → treat as stock
+        return !lower.Contains("ms-playwright");
+    }
+
+    /// <summary>
+    /// Executable path to pass into capture scripts. Empty when Playwright bundled should be used.
+    /// </summary>
+    public static string ResolveFirefoxExecutableForLaunch(string? executablePath)
+    {
+        var exe = (executablePath ?? string.Empty).Trim().Trim('"');
+        if (IsStockMozillaFirefoxPath(exe)) return string.Empty;
+        return exe;
     }
 
     /// <summary>
@@ -344,30 +389,49 @@ public sealed class ChromeProfileStore
     public static string FormatCommandPreview(ChromeProfileConfig config, int accountNumber = 1)
     {
         var cfg = Normalize(config, accountNumber);
-        var exe = cfg.ExecutablePath.Contains(' ', StringComparison.Ordinal)
-            ? $"\"{cfg.ExecutablePath}\""
-            : cfg.ExecutablePath;
 
         if (IsFirefox(cfg))
         {
             var profile = ResolveFirefoxProfileDir(accountNumber, cfg.UserDataDir);
             var profileArg = profile.Contains(' ', StringComparison.Ordinal) ? $"\"{profile}\"" : profile;
-            return $"{exe} --profile {profileArg}  (Playwright firefox persistent)";
+            var launchExe = ResolveFirefoxExecutableForLaunch(cfg.ExecutablePath);
+            if (string.IsNullOrEmpty(launchExe))
+            {
+                return
+                    $"playwright-firefox --profile {profileArg}  → https://www.mindvideo.ai/auth/signin/  (bundled; 勿填系統 firefox.exe)";
+            }
+
+            var exe = launchExe.Contains(' ', StringComparison.Ordinal) ? $"\"{launchExe}\"" : launchExe;
+            return $"{exe} --profile {profileArg}  → https://www.mindvideo.ai/auth/signin/  (Playwright persistent)";
         }
 
+        var chromeExe = cfg.ExecutablePath.Contains(' ', StringComparison.Ordinal)
+            ? $"\"{cfg.ExecutablePath}\""
+            : cfg.ExecutablePath;
         var userData = ResolveCdpUserDataDir(accountNumber, cfg.UserDataDir);
         var userDataArg = userData.Contains(' ', StringComparison.Ordinal) ? $"\"{userData}\"" : userData;
-        return $"{exe} --remote-debugging-port=<port> --remote-allow-origins=* --user-data-dir={userDataArg}";
+        return $"{chromeExe} --remote-debugging-port=<port> --remote-allow-origins=* --user-data-dir={userDataArg}";
     }
 
     public static ChromeProfileConfig Normalize(ChromeProfileConfig config, int accountNumber = 1)
     {
         var browser = NormalizeBrowser(config.Browser, config.ExecutablePath);
-        var exe = string.IsNullOrWhiteSpace(config.ExecutablePath)
-            ? (browser == BrowserFirefox
-                ? FindFirefoxExecutable() ?? DefaultFirefoxExecutablePath
-                : DefaultExecutablePath)
-            : config.ExecutablePath.Trim().Trim('"');
+        string exe;
+        if (browser == BrowserFirefox)
+        {
+            // Empty / stock Mozilla → use Playwright bundled (do not auto-fill system firefox.exe).
+            var raw = string.IsNullOrWhiteSpace(config.ExecutablePath)
+                ? string.Empty
+                : config.ExecutablePath.Trim().Trim('"');
+            exe = ResolveFirefoxExecutableForLaunch(raw);
+        }
+        else
+        {
+            exe = string.IsNullOrWhiteSpace(config.ExecutablePath)
+                ? DefaultExecutablePath
+                : config.ExecutablePath.Trim().Trim('"');
+        }
+
         browser = NormalizeBrowser(browser, exe);
 
         string? userData = string.IsNullOrWhiteSpace(config.UserDataDir)

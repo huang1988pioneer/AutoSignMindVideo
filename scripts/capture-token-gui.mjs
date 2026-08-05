@@ -165,6 +165,37 @@ function findSystemFirefox() {
   return candidates.find((p) => p && fs.existsSync(p)) || null;
 }
 
+/**
+ * Stock Mozilla Firefox is NOT compatible with Playwright's automation protocol
+ * (launchPersistentContext often hangs; page never navigates; no in-page banner).
+ * Only Playwright's own ms-playwright Firefox binary works reliably.
+ */
+function isStockMozillaFirefoxPath(executablePath) {
+  const exe = String(executablePath || "").trim();
+  if (!exe) return true;
+  const lower = exe.replace(/\//g, "\\").toLowerCase();
+  if (lower.includes("ms-playwright")) return false;
+  if (lower.includes("playwright") && !lower.endsWith(".exe") && !lower.endsWith("firefox")) {
+    return true;
+  }
+  const base = path.basename(lower);
+  if (base !== "firefox.exe" && base !== "firefox" && base !== "firefox-bin") return false;
+  if (lower.includes("mozilla firefox") || lower.includes("\\firefox\\")) return true;
+  // Any non-ms-playwright firefox binary → treat as stock
+  return !lower.includes("ms-playwright");
+}
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${Math.round(ms / 1000)}s`)),
+      ms
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 function defaultFirefoxProfileDir(account) {
   const accountKey = account > 0 ? String(account).padStart(2, "0") : "xx";
   // Prefer LocalAppData ASCII path (no Chinese path segments).
@@ -962,6 +993,9 @@ async function launchStealthPersistent(chromium, startUrl, launchOpts = {}) {
 /**
  * Launch Firefox via Playwright persistent context.
  * userDataDir is the Firefox profile directory (not a parent of profiles).
+ *
+ * IMPORTANT: always use Playwright's bundled Firefox. Stock Mozilla firefox.exe
+ * hangs on launchPersistentContext and never reaches mindvideo.ai / page banner.
  */
 async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
   const { firefox } = playwright;
@@ -971,32 +1005,59 @@ async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
     );
   }
 
-  const executable =
-    (launchOpts.executablePath && fs.existsSync(launchOpts.executablePath)
+  const requestedExe =
+    launchOpts.executablePath && fs.existsSync(launchOpts.executablePath)
       ? launchOpts.executablePath
-      : null) || findSystemFirefox();
+      : null;
+  // Never pass stock Mozilla Firefox to Playwright — it hangs and skips navigation.
+  let executable = null;
+  if (requestedExe && !isStockMozillaFirefoxPath(requestedExe)) {
+    executable = requestedExe;
+  } else if (requestedExe && isStockMozillaFirefoxPath(requestedExe)) {
+    console.warn(
+      `[Firefox] Ignoring stock Mozilla path (incompatible with Playwright):\n  ${requestedExe}`
+    );
+    console.warn(
+      "[Firefox] Using Playwright bundled Firefox instead. Leave executable empty in the app."
+    );
+  }
 
   const profileDir = resolveFirefoxProfileDir(launchOpts);
   prepareFirefoxProfileForLaunch(profileDir);
+  const targetUrl = startUrl || DEFAULT_URL;
 
   console.log(`[Firefox] Launching Playwright persistent context`);
   console.log(`[Firefox] executable: ${executable || "(Playwright bundled firefox)"}`);
   console.log(`[Firefox] profile: ${profileDir}`);
+  console.log(`[Firefox] will open: ${targetUrl}`);
   console.log(
     "[Firefox] Tip: first run needs Google login once; later runs reuse cookies in this profile."
   );
 
   try {
-    const context = await firefox.launchPersistentContext(profileDir, {
-      headless: false,
-      viewport: { width: 1365, height: 900 },
-      locale: "zh-TW",
-      ...(executable ? { executablePath: executable } : {}),
-      firefoxUserPrefs: {
-        "dom.webdriver.enabled": false,
-        "useAutomationExtension": false,
-      },
-    });
+    const context = await withTimeout(
+      firefox.launchPersistentContext(profileDir, {
+        headless: false,
+        viewport: { width: 1365, height: 900 },
+        locale: "zh-TW",
+        ...(executable ? { executablePath: executable } : {}),
+        // Pass URL as arg so the first window is not stuck on about:blank / restore.
+        args: [targetUrl],
+        firefoxUserPrefs: {
+          "dom.webdriver.enabled": false,
+          "useAutomationExtension": false,
+          // Avoid session restore fighting our goto / start URL.
+          "browser.startup.page": 0,
+          "browser.sessionstore.resume_from_crash": false,
+          "browser.sessionstore.max_resumed_crashes": 0,
+          "browser.shell.checkDefaultBrowser": false,
+          "datareporting.policy.dataSubmissionEnabled": false,
+          "toolkit.telemetry.reportingpolicy.firstRun": false,
+        },
+      }),
+      60_000,
+      "Firefox launchPersistentContext"
+    );
 
     await context.addInitScript(() => {
       Object.defineProperty(navigator, "webdriver", {
@@ -1005,13 +1066,54 @@ async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
     });
 
     const page = context.pages()[0] || (await context.newPage());
+    console.log(`[Firefox] Initial page url: ${page.url()}`);
+
+    // Force navigation even if session restore or args URL failed.
+    let navigated = false;
+    const candidates = [
+      targetUrl,
+      DEFAULT_URL,
+      "https://www.mindvideo.ai/auth/signin/",
+      "https://www.mindvideo.ai/zh/auth/signin/",
+      "https://mindvideo.ai/auth/signin/",
+    ].filter((value, index, all) => value && all.indexOf(value) === index);
+
+    for (const url of candidates) {
+      try {
+        console.log(`[Firefox] Navigating → ${url}`);
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 45_000,
+        });
+        const now = page.url();
+        console.log(`[Firefox] After goto: ${now}`);
+        if (/mindvideo\.ai/i.test(now)) {
+          navigated = true;
+          break;
+        }
+      } catch (error) {
+        console.warn(`[Firefox] Navigation warning (${url}): ${error.message}`);
+      }
+    }
+
+    if (!navigated) {
+      console.warn(
+        "[Firefox] Could not confirm mindvideo.ai URL yet; will retry in openGoogleLogin."
+      );
+    }
+
+    // Immediate user-visible prompt (works even before SPA fully hydrates).
     try {
-      await page.goto(startUrl || DEFAULT_URL, {
-        waitUntil: "domcontentloaded",
-        timeout: 45_000,
-      });
+      await setPageBanner(
+        page,
+        navigated
+          ? "此帳號為 Google 帳號：請用「Login with Google / 使用 Google 登入」。登入成功後維持 ≥5 秒會擷取 Token。"
+          : "正在開啟 MindVideo 登入頁…若沒有自動跳轉，請手動前往 https://www.mindvideo.ai/auth/signin/",
+        "waiting"
+      );
+      console.log("[Firefox] Page banner injected");
     } catch (error) {
-      console.warn(`[Firefox] Initial navigation warning: ${error.message}`);
+      console.warn(`[Firefox] Banner inject warning: ${error.message}`);
     }
 
     console.log("[Firefox] Persistent context ready");
@@ -1025,6 +1127,20 @@ async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
     };
   } catch (error) {
     const msg = String(error.message || error);
+    if (/timed out/i.test(msg)) {
+      throw new Error(
+        [
+          "Firefox 啟動逾時：通常是設定了系統 Mozilla firefox.exe（與 Playwright 不相容）。",
+          msg,
+          "",
+          "處理方式：",
+          "1) App 內「瀏覽器執行檔」留空，或按「還原 Firefox 預設」",
+          "2) 執行：npx playwright install firefox",
+          "3) 工作管理員結束殘留的 firefox.exe 後重試",
+          `Profile: ${profileDir}`,
+        ].join("\n")
+      );
+    }
     if (/lock|profile|busy|in use/i.test(msg)) {
       throw new Error(
         [
@@ -1244,6 +1360,13 @@ async function main() {
       `[${secretName}] Browser=Firefox (Playwright persistent)` +
         (launchOpts.profileLabel ? ` · ${launchOpts.profileLabel}` : "")
     );
+    console.log(`[${secretName}] Target URL: ${options.url || DEFAULT_URL}`);
+    if (launchOpts.executablePath && isStockMozillaFirefoxPath(launchOpts.executablePath)) {
+      console.warn(
+        `[${secretName}] executable-path is stock Mozilla Firefox — will use Playwright bundled Firefox.`
+      );
+      launchOpts.executablePath = null;
+    }
   } else if (launchOpts.profileDirectory) {
     console.log(
       `[${secretName}] Using Chrome profile-directory="${launchOpts.profileDirectory}"` +

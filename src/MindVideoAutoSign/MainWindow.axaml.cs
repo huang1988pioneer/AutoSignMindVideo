@@ -220,8 +220,12 @@ public partial class MainWindow : Window
         var firefox = ChromeProfileStore.IsFirefox(config);
         if (ChromeExeBox is not null)
             ChromeExeBox.Watermark = firefox
-                ? @"C:\Program Files\Mozilla Firefox\firefox.exe"
+                ? "留空 = 使用 Playwright 內建 Firefox（請勿填系統 firefox.exe）"
                 : @"C:\Program Files\Google\Chrome\Application\chrome.exe";
+        if (ChromeExeLabel is not null)
+            ChromeExeLabel.Text = firefox
+                ? "瀏覽器執行檔（Firefox 請留空；系統 firefox.exe 與 Playwright 不相容）"
+                : "瀏覽器執行檔（chrome.exe / msedge.exe）";
         if (ChromeUserDataBox is not null)
             ChromeUserDataBox.Watermark = firefox
                 ? @"%LOCALAPPDATA%\MindVideo Auto Sign\firefox-profiles\account-01"
@@ -267,12 +271,19 @@ public partial class MainWindow : Window
 
         var exe = string.IsNullOrWhiteSpace(ChromeExeBox.Text)
             ? (browser == ChromeProfileStore.BrowserFirefox
-                ? ChromeProfileStore.FindFirefoxExecutable() ?? ChromeProfileStore.DefaultFirefoxExecutablePath
+                ? string.Empty
                 : ChromeProfileStore.DefaultExecutablePath)
             : ChromeExeBox.Text.Trim().Trim('"');
 
         // Infer browser from executable if user typed firefox path while combo is chrome.
         browser = ChromeProfileStore.NormalizeBrowser(browser, exe);
+
+        // Stock Mozilla firefox.exe hangs under Playwright — always fall back to bundled.
+        if (browser == ChromeProfileStore.BrowserFirefox &&
+            ChromeProfileStore.IsStockMozillaFirefoxPath(exe))
+        {
+            exe = string.Empty;
+        }
 
         if (browser != ChromeProfileStore.BrowserFirefox &&
             ChromeProfileStore.IsForbiddenSystemChromeUserDataDir(userData))
@@ -339,7 +350,18 @@ public partial class MainWindow : Window
         try
         {
             var config = ReadChromeFieldsFromUi();
-            if (!File.Exists(config.ExecutablePath))
+            if (ChromeProfileStore.IsFirefox(config))
+            {
+                // Stock Mozilla path is normalized away; bundled needs no file check.
+                var firefoxExe = ChromeProfileStore.ResolveFirefoxExecutableForLaunch(config.ExecutablePath);
+                if (!string.IsNullOrEmpty(firefoxExe) && !File.Exists(firefoxExe))
+                {
+                    LoginStatus.Text = $"找不到 Firefox 執行檔：{firefoxExe}";
+                    return;
+                }
+                config.ExecutablePath = firefoxExe;
+            }
+            else if (string.IsNullOrWhiteSpace(config.ExecutablePath) || !File.Exists(config.ExecutablePath))
             {
                 LoginStatus.Text = $"找不到瀏覽器執行檔：{config.ExecutablePath}";
                 return;
@@ -468,24 +490,29 @@ public partial class MainWindow : Window
             await _chromeProfiles.SyncWorkspaceFileAsync(_chromeByAccount, _aliases);
             Directory.CreateDirectory(profileDir);
 
-            if (!File.Exists(chrome.ExecutablePath))
-                throw new FileNotFoundException($"找不到瀏覽器執行檔：{chrome.ExecutablePath}");
+            // Chrome needs a real executable; Firefox uses Playwright bundled when path empty/stock.
+            if (!isFirefox)
+            {
+                if (string.IsNullOrWhiteSpace(chrome.ExecutablePath) || !File.Exists(chrome.ExecutablePath))
+                    throw new FileNotFoundException($"找不到瀏覽器執行檔：{chrome.ExecutablePath}");
+            }
+            else
+            {
+                var firefoxExe = ChromeProfileStore.ResolveFirefoxExecutableForLaunch(chrome.ExecutablePath);
+                if (!string.IsNullOrEmpty(firefoxExe) && !File.Exists(firefoxExe))
+                    throw new FileNotFoundException($"找不到 Firefox 執行檔：{firefoxExe}");
+                // Clear stock Mozilla path so we do not pass a hanging executable.
+                chrome.ExecutablePath = firefoxExe;
+            }
 
             if (isFirefox)
             {
                 // Fail early with clear ZH guidance; also clears stale parent.lock.
                 ChromeProfileStore.PrepareFirefoxProfileOrThrow(profileDir);
-                if (ChromeProfileStore.IsSystemFirefoxProfilesPath(profileDir))
-                {
-                    LoginStatus.Text =
-                        "將使用系統 Firefox profile（勿同時開 Firefox；中文路徑建議改專用英文 Profile）… " +
-                        ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber);
-                }
-                else
-                {
-                    LoginStatus.Text =
-                        $"將以專用 Firefox Profile 啟動：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
-                }
+                LoginStatus.Text =
+                    "將啟動 Playwright Firefox 並跳轉 https://www.mindvideo.ai/auth/signin/；" +
+                    "頁面頂部會有登入提示橫幅。請用「Login with Google」登入，維持 ≥5 秒後擷取 Token。 " +
+                    ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber);
             }
             else
             {
@@ -499,9 +526,15 @@ public partial class MainWindow : Window
                 "--account", AccountNumber.ToString(),
                 "--output", tokenFile,
                 "--browser", ChromeProfileStore.NormalizeBrowser(chrome.Browser, chrome.ExecutablePath),
-                "--executable-path", chrome.ExecutablePath,
-                "--user-data-dir", profileDir
+                "--user-data-dir", profileDir,
+                "--url", "https://www.mindvideo.ai/auth/signin/"
             };
+            // Only pass executable for Chrome, or a non-stock Firefox binary.
+            if (!string.IsNullOrWhiteSpace(chrome.ExecutablePath))
+            {
+                captureArgs.Add("--executable-path");
+                captureArgs.Add(chrome.ExecutablePath);
+            }
             if (!string.IsNullOrWhiteSpace(chrome.ProfileDirectory))
             {
                 captureArgs.Add("--profile-directory");
