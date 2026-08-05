@@ -4,21 +4,35 @@ This signs in to MindVideo once per day using the same API as the website.
 
 ## Windows desktop app (Avalonia)
 
-The repository now includes a Windows-first Avalonia desktop app for managing
-multiple local MindVideo tokens and running verified daily check-ins without
-using environment variables.
+The repository includes a Windows-first Avalonia desktop app modeled after
+[Musicful Flow](https://github.com/huang1988pioneer/AutoSignMusicful)
+(`MusicfulFlow`). It has three views:
+
+1. **簽到總覽** — trigger `mindvideo-daily-checkin.yml`, refresh the latest
+   GitHub Actions run, and list each account’s status / streak.
+2. **帳號設定** — local aliases for the 33 `MINDVIDEO_TOKEN*` secrets.
+3. **更新登入狀態** — capture a Bearer token in the browser, paste a token,
+   save it locally, push it to a GitHub Secret, and run a direct status check
+   or check-in against the MindVideo API.
 
 ```powershell
 dotnet run --project .\src\MindVideoAutoSign\MindVideoAutoSign.csproj
 ```
 
-The first launch has no accounts. Select **新增**, give the account a name,
-paste its MindVideo token, then select **儲存設定**. The token file is stored
-only at `%LOCALAPPDATA%\MindVideo Auto Sign\accounts.json`; it is not written
-to this repository or printed in the UI.
+For the GitHub Actions dashboard and secret updates, install the GitHub CLI
+and authenticate once:
 
-The UI confirms the record again after posting a check-in. It only reports a
-successful check-in once the API returns the completed state.
+```powershell
+gh auth login
+```
+
+Local tokens are stored only at
+`%LOCALAPPDATA%\MindVideo Auto Sign\accounts.json`. Aliases are stored under
+`%APPDATA%\MindVideoFlow\account-aliases.json`. Neither is written back into
+this repository.
+
+Browser capture uses `scripts/capture-token-gui.mjs` (auto-detects the token
+after you log in; no terminal Enter step).
 
 ## Setup
 

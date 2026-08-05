@@ -1,16 +1,15 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="MindVideoAutoSign.App"
-             RequestedThemeVariant="Dark">
+             RequestedThemeVariant="Light">
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window">
       <Setter Property="FontFamily" Value="avares://Avalonia.Fonts.Inter/Assets#Inter" />
-      <Setter Property="Background" Value="#090D14" />
     </Style>
     <Style Selector="Button">
-      <Setter Property="CornerRadius" Value="8" />
-      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="Padding" Value="15,9" />
       <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="TextBox">

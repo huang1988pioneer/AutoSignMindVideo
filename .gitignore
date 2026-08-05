@@ -1,5 +1,11 @@
-.env
+﻿.env
 .env.captured
 logs/
 artifacts/
+dist/
 .DS_Store
+node_modules/
+bin/
+obj/
+publish/
+*.user

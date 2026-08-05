@@ -6,7 +6,8 @@
   "scripts": {
     "checkin": "node checkin.js",
     "summary": "node scripts/summarize-checkin-results.js",
-    "capture:tokens": "node scripts/capture-mindvideo-tokens.js"
+    "capture:tokens": "node scripts/capture-mindvideo-tokens.js",
+    "capture:token-gui": "node scripts/capture-token-gui.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0"

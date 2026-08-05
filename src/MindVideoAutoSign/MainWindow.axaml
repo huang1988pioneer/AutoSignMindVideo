@@ -1,95 +1,193 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:MindVideoAutoSign.ViewModels"
         x:Class="MindVideoAutoSign.MainWindow"
-        x:DataType="vm:MainViewModel"
-        Width="1160" Height="760" MinWidth="920" MinHeight="620"
-        Title="MindVideo 每日簽到">
-  <!-- THESIS: A focused daily control room, refusing the generic dashboard-card grid. OWN-WORLD: Night ledger, electric blue signal, measured rules, compact account rows. STORY: add a local account, see its state, and make a verified check-in. FIRST VIEWPORT: account rail at left, chosen account and action panel at right, all-account action at top. FORM: sequential operations console; seed 9e0d867d. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md -->
-  <Grid RowDefinitions="Auto,*,Auto" Background="#090D14">
-    <Border Grid.Row="0" Padding="28,22,28,18" BorderBrush="#273248" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Spacing="4">
-          <TextBlock Text="MindVideo 每日簽到" FontSize="25" FontWeight="SemiBold" Foreground="#F3F7FF" />
-          <TextBlock Text="本機帳號、即時狀態、嚴格驗證" FontSize="13" Foreground="#9CB0CF" />
+        Title="MindVideo Flow"
+        Width="1000" Height="860"
+        MinWidth="1000" MinHeight="860"
+        Background="#F4F7FB">
+  <Window.Styles>
+    <Style Selector="Border.panel">
+      <Setter Property="Background" Value="#FFFFFF" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="24" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#65758B" />
+    </Style>
+    <Style Selector="Button.nav">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="#BED5EB" />
+      <Setter Property="Padding" Value="13,10" />
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+    <Style Selector="Button.nav:pointerover">
+      <Setter Property="Background" Value="#203B5C" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#1976D2" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Padding" Value="17,10" />
+    </Style>
+    <Style Selector="Button.success">
+      <Setter Property="Background" Value="#0F766E" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Padding" Value="17,10" />
+    </Style>
+  </Window.Styles>
+
+  <Grid ColumnDefinitions="244,*">
+    <!-- Sidebar -->
+    <Border Background="#102A43" Padding="25">
+      <StackPanel Spacing="20">
+        <StackPanel Spacing="6">
+          <TextBlock Text="MindVideo Flow" FontSize="24" FontWeight="Bold" Foreground="White" />
+          <TextBlock Text="自動簽到控制台" Foreground="#A9CCE8" />
+          <TextBlock Text="管理 Token、GitHub Actions 與每日簽到結果。"
+                     TextWrapping="Wrap" FontSize="12" Foreground="#8FB9DB" Margin="0,8,0,0" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <TextBlock Text="{Binding AccountCount}" Foreground="#9CB0CF" VerticalAlignment="Center" />
-          <Button Command="{Binding CheckAllCommand}" Background="#257BF5" Foreground="White" Content="全部簽到" />
-        </StackPanel>
-      </Grid>
-    </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="330,*">
-      <Border Padding="20" BorderBrush="#273248" BorderThickness="0,0,1,0" Background="#0C121E">
-        <Grid RowDefinitions="Auto,*,Auto">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="帳號" FontSize="15" FontWeight="SemiBold" Foreground="#F3F7FF" />
-            <Button Grid.Column="1" Command="{Binding AddAccountCommand}" Padding="12,7" Content="新增" />
-          </Grid>
-          <ListBox Grid.Row="1" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedAccount}" Background="Transparent" BorderThickness="0">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:AccountViewModel">
-                <Border Padding="12" Margin="0,0,0,8" CornerRadius="8" Background="#121B2B">
-                  <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#EAF1FC" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" Foreground="{Binding StatusBrush}" FontSize="12" />
-                    <TextBlock Grid.Row="1" Text="{Binding Message}" Foreground="#8295B4" FontSize="12" TextTrimming="CharacterEllipsis" />
-                  </Grid>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-          <TextBlock Grid.Row="2" Text="Token 只儲存在此電腦的使用者設定檔，不會寫入專案或傳送至第三方。" TextWrapping="Wrap" FontSize="12" Foreground="#8295B4" />
-        </Grid>
-      </Border>
-
-      <Grid Grid.Column="1" Margin="42,36" RowDefinitions="Auto,Auto,*,Auto">
-        <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Spacing="5">
-            <TextBlock Text="{Binding SelectedAccount.Name, TargetNullValue=選擇一個帳號}" FontSize="28" FontWeight="SemiBold" Foreground="#F3F7FF" />
-            <TextBlock Text="每日簽到狀態與帳號設定" FontSize="13" Foreground="#9CB0CF" />
+        <Border Background="#193958" CornerRadius="10" Padding="14">
+          <StackPanel Spacing="6">
+            <TextBlock Text="安全提醒" FontWeight="SemiBold" Foreground="White" />
+            <TextBlock Text="登入與驗證必須由你在瀏覽器中完成。此工具只會擷取或保存 Bearer Token，不會把 Token 寫回專案檔。"
+                       TextWrapping="Wrap" FontSize="12" Foreground="#BED5EB" />
           </StackPanel>
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <Button Command="{Binding RefreshCommand}" Content="重新整理" />
-            <Button Command="{Binding CheckInCommand}" Background="#257BF5" Foreground="White" Content="立即簽到" />
-          </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Margin="0,26,0,0">
-          <Border Background="#10192A" CornerRadius="10" Padding="18,16" Margin="0,0,12,0">
-            <StackPanel Spacing="6"><TextBlock Text="目前狀態" Foreground="#8295B4" FontSize="12" /><TextBlock Text="{Binding SelectedAccount.StatusLabel}" Foreground="{Binding SelectedAccount.StatusBrush}" FontSize="21" FontWeight="SemiBold" /></StackPanel>
-          </Border>
-          <Border Grid.Column="1" Background="#10192A" CornerRadius="10" Padding="18,16" Margin="4,0,8,0">
-            <StackPanel Spacing="6"><TextBlock Text="總點數" Foreground="#8295B4" FontSize="12" /><TextBlock Text="{Binding SelectedAccount.CreditsLabel}" Foreground="#F3F7FF" FontSize="21" FontWeight="SemiBold" /></StackPanel>
-          </Border>
-          <Border Grid.Column="2" Background="#10192A" CornerRadius="10" Padding="18,16" Margin="4,0,0,0">
-            <StackPanel Spacing="6"><TextBlock Text="連續簽到" Foreground="#8295B4" FontSize="12" /><TextBlock Text="{Binding SelectedAccount.StreakLabel}" Foreground="#F3F7FF" FontSize="21" FontWeight="SemiBold" /></StackPanel>
-          </Border>
-        </Grid>
-
-        <Border Grid.Row="2" Margin="0,26,0,0" Padding="24" Background="#10192A" CornerRadius="10" BorderBrush="#273248" BorderThickness="1">
-          <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
-            <TextBlock Text="帳號設定" FontSize="16" FontWeight="SemiBold" Foreground="#F3F7FF" />
-            <TextBlock Grid.Row="1" Text="顯示名稱" FontSize="12" Foreground="#9CB0CF" />
-            <TextBox Grid.Row="2" Text="{Binding SelectedAccount.Name}" Watermark="例如：主要帳號" />
-            <StackPanel Grid.Row="3" Margin="0,14,0,0" Spacing="8">
-              <TextBlock Text="MindVideo Token" FontSize="12" Foreground="#9CB0CF" />
-              <TextBox Text="{Binding SelectedAccount.Token}" PasswordChar="●" Watermark="貼上登入後取得的 Token" />
-              <TextBlock Text="儲存後 Token 會以密碼欄位顯示；請勿將它貼到公開對話、Issue 或版本控制中。" TextWrapping="Wrap" FontSize="12" Foreground="#8295B4" />
-            </StackPanel>
-            <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,0">
-              <TextBlock Text="{Binding SelectedAccount.Message}" Foreground="#9CB0CF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-              <Button Grid.Column="1" Command="{Binding RemoveAccountCommand}" Foreground="#FF9BA0" Content="移除帳號" />
-              <Button Grid.Column="2" Command="{Binding SaveCommand}" Background="#1A315B" Foreground="#DCEAFF" Content="儲存設定" />
-            </Grid>
-          </Grid>
         </Border>
-        <TextBlock Grid.Row="3" Text="{Binding Activity}" Foreground="#9CB0CF" FontSize="13" />
-      </Grid>
-    </Grid>
-    <Border Grid.Row="2" Padding="28,12" BorderBrush="#273248" BorderThickness="0,1,0,0">
-      <TextBlock Text="簽到後會重新讀取狀態確認完成；若 API 回應尚未同步，工具會要求您稍後再次確認。" FontSize="12" Foreground="#8295B4" />
+
+        <StackPanel Spacing="5">
+          <Button Classes="nav" Click="DashboardNavButton_OnClick">簽到總覽</Button>
+          <Button Classes="nav" Click="AccountsNavButton_OnClick">帳號設定</Button>
+          <Button Classes="nav" Click="LoginNavButton_OnClick">更新登入狀態</Button>
+        </StackPanel>
+
+        <TextBlock Text="排程：台灣時間 05、11、17、23 時；每次依帳號錯開啟動。"
+                   TextWrapping="Wrap" FontSize="12" Foreground="#8FB9DB" Margin="0,18,0,0" />
+      </StackPanel>
     </Border>
+
+    <!-- Content -->
+    <ScrollViewer Grid.Column="1" Margin="38,34,24,24" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel MaxWidth="650" Spacing="18">
+
+        <!-- Dashboard -->
+        <StackPanel x:Name="DashboardView" Spacing="18">
+          <TextBlock Text="簽到總覽" FontSize="30" FontWeight="SemiBold" Foreground="#132A42" />
+          <TextBlock Classes="muted"
+                     Text="手動執行每日簽到，並讀取最近一次 MindVideo Daily Check-in 的完成狀態與連續簽到天數。"
+                     TextWrapping="Wrap" />
+
+          <Border Classes="panel">
+            <StackPanel Spacing="18">
+              <TextBlock Text="GitHub Actions 儀表板" FontSize="20" FontWeight="SemiBold" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="TriggerButton" Classes="primary" Click="TriggerButton_OnClick">立即執行簽到</Button>
+                <Button x:Name="RefreshButton" Click="RefreshButton_OnClick">更新執行結果</Button>
+              </StackPanel>
+
+              <Grid ColumnDefinitions="*,*">
+                <StackPanel Spacing="4" Margin="0,0,12,0">
+                  <TextBlock Classes="muted" Text="已設定帳號" FontSize="12" />
+                  <TextBlock x:Name="ConfiguredMetric" Text="—" FontSize="20" FontWeight="SemiBold" Foreground="#0F766E" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0">
+                  <TextBlock Classes="muted" Text="最近執行" FontSize="12" />
+                  <TextBlock x:Name="RunMetric" Text="尚未讀取" FontSize="20" FontWeight="SemiBold" />
+                </StackPanel>
+              </Grid>
+
+              <Border Height="1" Background="#DCE5EF" />
+
+              <Grid ColumnDefinitions="*,*">
+                <StackPanel Spacing="4" Margin="0,0,12,0">
+                  <TextBlock Classes="muted" Text="連續簽到摘要" FontSize="12" />
+                  <TextBlock x:Name="StreakMetric" Text="—" FontSize="18" FontWeight="SemiBold" Foreground="#0F766E" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0">
+                  <TextBlock Classes="muted" Text="完成時間" FontSize="12" />
+                  <TextBlock x:Name="RunTimeMetric" Text="—" FontSize="18" FontWeight="SemiBold" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock x:Name="DashboardStatus" Classes="muted"
+                         Text="執行後可在 GitHub Actions 檢視各帳號的成功、失敗與未設定狀態。"
+                         TextWrapping="Wrap" />
+
+              <TextBlock Text="帳號簽到明細" FontSize="16" FontWeight="SemiBold" />
+              <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="AccountsPanel" Spacing="7" />
+              </ScrollViewer>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Account aliases -->
+        <StackPanel x:Name="AccountsView" IsVisible="False" Spacing="18">
+          <TextBlock Text="帳號設定" FontSize="30" FontWeight="SemiBold" Foreground="#132A42" />
+          <TextBlock Classes="muted"
+                     Text="名稱只保存在本機，用於讓 33 個 GitHub Secret（MINDVIDEO_TOKEN1…33）更容易辨識。"
+                     TextWrapping="Wrap" />
+          <Border Classes="panel">
+            <StackPanel Spacing="12">
+              <TextBlock Text="帳號別名" FontSize="19" FontWeight="SemiBold" />
+              <ScrollViewer MaxHeight="410">
+                <StackPanel x:Name="AliasPanel" Spacing="8" />
+              </ScrollViewer>
+              <Button HorizontalAlignment="Left" Click="SaveAliasesButton_OnClick">儲存本機別名</Button>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Token / login update -->
+        <StackPanel x:Name="LoginView" IsVisible="False" Spacing="18">
+          <TextBlock Text="更新登入狀態" FontSize="30" FontWeight="SemiBold" Foreground="#132A42" />
+          <TextBlock Classes="muted"
+                     Text="瀏覽器開啟後完成 MindVideo 登入；工具會自動擷取 Bearer Token。你也可以手動貼上 Token，再更新到 GitHub Secret。"
+                     TextWrapping="Wrap" />
+
+          <Border Classes="panel">
+            <StackPanel Spacing="14">
+              <TextBlock Text="選擇帳號" FontSize="19" FontWeight="SemiBold" />
+              <ComboBox x:Name="AccountComboBox" Width="260" SelectedIndex="0"
+                        SelectionChanged="AccountComboBox_OnSelectionChanged" />
+
+              <Border Background="#E8F1FB" CornerRadius="7" Padding="12,8">
+                <TextBlock x:Name="SecretNameText" FontFamily="Consolas" Foreground="#125799" />
+              </Border>
+
+              <TextBlock Classes="muted" Text="MindVideo Token（密碼顯示）" FontSize="12" />
+              <TextBox x:Name="TokenBox" PasswordChar="•" Watermark="貼上或由瀏覽器擷取後會顯示在這裡" />
+
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="StartLoginButton" Classes="primary" Click="StartLoginButton_OnClick">開始登入並擷取 Token</Button>
+                <Button x:Name="CopyTokenButton" IsEnabled="False" Click="CopyTokenButton_OnClick">複製 Token</Button>
+                <Button x:Name="CopySecretButton" Click="CopySecretButton_OnClick">複製 Secret 名稱</Button>
+              </StackPanel>
+
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="SaveLocalButton" Click="SaveLocalButton_OnClick">儲存本機 Token</Button>
+                <Button x:Name="PushSecretButton" Classes="success" Click="PushSecretButton_OnClick">更新到 GitHub Secret</Button>
+              </StackPanel>
+
+              <Border Height="1" Background="#DCE5EF" Margin="0,4" />
+
+              <TextBlock Text="目前帳號狀態" FontSize="16" FontWeight="SemiBold" />
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button x:Name="ReadStatusButton" Click="ReadStatusButton_OnClick">讀取狀態</Button>
+                <Button x:Name="LocalCheckInButton" Click="LocalCheckInButton_OnClick">直接簽到</Button>
+              </StackPanel>
+              <TextBlock x:Name="PointsStatus" Classes="muted"
+                         Text="需要先設定此帳號的 Token。"
+                         TextWrapping="Wrap" />
+              <TextBlock x:Name="LoginStatus" Classes="muted"
+                         Text="擷取後，可將 Token 更新到對應的 GitHub Actions Secret，或僅保存在本機。"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
   </Grid>
 </Window>
