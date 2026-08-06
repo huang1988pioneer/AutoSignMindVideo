@@ -64,7 +64,7 @@
           <Button Classes="nav" Click="LoginNavButton_OnClick">更新登入狀態</Button>
         </StackPanel>
 
-        <TextBlock Text="排程：台灣時間 05、11、17、23 時；每次依帳號錯開啟動。"
+        <TextBlock Text="排程：台灣時間 05:00–06:00、13:00–14:00、21:00–22:00；33 帳號依序錯開 5–15 秒啟動。"
                    TextWrapping="Wrap" FontSize="12" Foreground="#8FB9DB" Margin="0,18,0,0" />
       </StackPanel>
     </Border>

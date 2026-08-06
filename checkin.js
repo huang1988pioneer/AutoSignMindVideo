@@ -163,11 +163,36 @@ function numberOrUndefined(value) {
   return Number.isFinite(num) ? num : undefined;
 }
 
+/**
+ * Continuous check-in days from MindVideo record.
+ * Prefer official `current_day`; fall back to other common aliases.
+ */
+function extractStreak(record) {
+  if (!record || typeof record !== "object") return undefined;
+  const candidates = [
+    record.current_day,
+    record.continuous_days,
+    record.continuous_day,
+    record.checkin_days,
+    record.check_in_days,
+    record.sign_days,
+    record.streak_days,
+    record.streak,
+    record.days,
+  ];
+  for (const value of candidates) {
+    const num = numberOrUndefined(value);
+    if (num !== undefined && num >= 0) return num;
+  }
+  return undefined;
+}
+
 function summarizeRecord(record) {
   if (!record) return "No record data returned.";
 
   const parts = [];
-  if (record.current_day !== undefined) parts.push(`streak ${record.current_day} day(s)`);
+  const streak = extractStreak(record);
+  if (streak !== undefined) parts.push(`streak ${streak} day(s)`);
   if (record.total_credits !== undefined) parts.push(`credits ${record.total_credits}`);
   if (record.single_checkin_credits !== undefined) {
     parts.push(`daily reward ${record.single_checkin_credits}`);
@@ -455,13 +480,24 @@ async function performCheckin(account) {
   });
 }
 
+function logStreak(accountName, record) {
+  const streak = extractStreak(record);
+  if (streak === undefined) {
+    console.log(`[${accountName}] Continuous check-in days: n/a`);
+    return null;
+  }
+  console.log(`[${accountName}] Continuous check-in days: ${streak}`);
+  return streak;
+}
+
 /**
  * @returns {Promise<{
  *   status: 'checked_in' | 'already_done' | 'failed',
  *   message: string,
  *   before?: object | null,
  *   after?: object | null,
- *   creditsDelta?: number | null
+ *   creditsDelta?: number | null,
+ *   streak?: number | null
  * }>}
  */
 async function checkinAccount(account) {
@@ -475,12 +511,14 @@ async function checkinAccount(account) {
 
   if (eligibility === "done") {
     console.log(`[${account.name}] No check-in needed: already completed today.`);
+    const streak = logStreak(account.name, before);
     return {
       status: "already_done",
       message: "already checked in today",
       before,
       after: before,
       creditsDelta: 0,
+      streak: streak ?? null,
     };
   }
 
@@ -498,12 +536,14 @@ async function checkinAccount(account) {
     if (/already|checked in|has check|重复|已签|已簽/i.test(error.message)) {
       const after = await fetchCheckinRecord(account).catch(() => before);
       console.log(`[${account.name}] API reports already checked in: ${summarizeRecord(after)}`);
+      const streak = logStreak(account.name, after);
       return {
         status: "already_done",
         message: error.message,
         before,
         after,
         creditsDelta: 0,
+        streak: streak ?? null,
       };
     }
     throw error;
@@ -542,12 +582,14 @@ async function checkinAccount(account) {
       throw new Error(`Check-in marked done but ${detail}`);
     }
     console.warn(`[${account.name}] Settled without credit gain after unknown eligibility: ${detail}`);
+    const streak = logStreak(account.name, after);
     return {
       status: "already_done",
       message: detail,
       before,
       after,
       creditsDelta: creditsDelta ?? 0,
+      streak: streak ?? null,
     };
   }
 
@@ -561,12 +603,14 @@ async function checkinAccount(account) {
     );
   }
 
+  const streak = logStreak(account.name, after ?? before);
   return {
     status: "checked_in",
     message: "check-in successful",
     before,
     after,
     creditsDelta,
+    streak: streak ?? null,
   };
 }
 
@@ -580,7 +624,11 @@ function accountNumberFromName(name) {
 function normalizeResultRow(item) {
   const afterCredits = numberOrUndefined(item.after?.total_credits);
   const beforeCredits = numberOrUndefined(item.before?.total_credits);
-  const streak = numberOrUndefined(item.after?.current_day ?? item.before?.current_day);
+  const streak =
+    numberOrUndefined(item.streak) ??
+    extractStreak(item.after) ??
+    extractStreak(item.before) ??
+    null;
   const dailyReward = numberOrUndefined(
     item.after?.single_checkin_credits ?? item.before?.single_checkin_credits
   );
@@ -596,7 +644,8 @@ function normalizeResultRow(item) {
         ? null
         : item.creditsDelta,
     totalCredits: afterCredits ?? beforeCredits ?? null,
-    streak: streak ?? null,
+    // Always persist continuous check-in days when the API provides them.
+    streak,
     dailyReward: dailyReward ?? null,
     finishedAt: new Date().toISOString(),
     runId: process.env.GITHUB_RUN_ID || null,
@@ -648,8 +697,11 @@ function printSummary(results) {
         : `${item.creditsDelta >= 0 ? "+" : ""}${item.creditsDelta}`;
     const afterCredits = numberOrUndefined(item.after?.total_credits);
     const creditsText = afterCredits === undefined ? "credits n/a" : `credits ${afterCredits}`;
+    const streak =
+      numberOrUndefined(item.streak) ?? extractStreak(item.after) ?? extractStreak(item.before);
+    const streakText = streak === undefined ? "streak n/a" : `streak ${streak} day(s)`;
     console.log(
-      `- ${item.name}: ${item.status} | delta ${delta} | ${creditsText} | ${item.message}`
+      `- ${item.name}: ${item.status} | delta ${delta} | ${creditsText} | ${streakText} | ${item.message}`
     );
   }
   console.log("======================================\n");
@@ -660,17 +712,24 @@ function printSummary(results) {
     const lines = [
       "## MindVideo check-in summary",
       "",
-      `| Account | Status | Credit delta | Total credits | Detail |`,
-      `| --- | --- | ---: | ---: | --- |`,
+      `| Account | Status | Credit delta | Total credits | Streak | Detail |`,
+      `| --- | --- | ---: | ---: | ---: | --- |`,
       ...results.map((item) => {
         const delta =
           item.creditsDelta === null || item.creditsDelta === undefined
             ? "n/a"
             : String(item.creditsDelta);
         const afterCredits = numberOrUndefined(item.after?.total_credits);
+        const streak =
+          numberOrUndefined(item.streak) ??
+          extractStreak(item.after) ??
+          extractStreak(item.before);
         return `| ${item.name} | ${item.status} | ${delta} | ${
           afterCredits === undefined ? "n/a" : afterCredits
-        } | ${String(item.message || "").replace(/\|/g, "/")} |`;
+        } | ${streak === undefined ? "n/a" : streak} | ${String(item.message || "").replace(
+          /\|/g,
+          "/"
+        )} |`;
       }),
       "",
     ];

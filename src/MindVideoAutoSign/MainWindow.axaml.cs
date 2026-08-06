@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly GitHubActionsService _github = new();
     private readonly MindVideoApiService _api = new();
     private readonly FileAccountStore _localTokens = new();
+    private readonly StreakStore _streaks = new();
     private readonly ChromeProfileStore _chromeProfiles;
     private readonly Dictionary<int, TextBox> _aliasInputs = [];
     private readonly Dictionary<int, string> _aliases;
@@ -51,6 +52,7 @@ public partial class MainWindow : Window
                 ConfiguredMetric.Text = $"{_aliases.Count(pair => !IsDefaultAlias(pair.Key, pair.Value))} 個別名";
             _ = LoadLocalTokensAsync();
             UpdateAccountDisplay();
+            LoadCachedStreakDashboard();
         }
         catch (Exception ex)
         {
@@ -657,6 +659,7 @@ public partial class MainWindow : Window
             });
             PointsStatus.Text =
                 $"{result.Message} · 總點數 {Display(result.TotalCredits)} · 連續簽到 {Display(result.Streak)} 天";
+            PersistLocalStreak(AccountNumber, DisplayAlias(AccountNumber), result.Streak, result.Status.ToString(), result.TotalCredits);
         });
     }
 
@@ -672,6 +675,7 @@ public partial class MainWindow : Window
             });
             PointsStatus.Text =
                 $"{result.Message} · 總點數 {Display(result.TotalCredits)} · 連續簽到 {Display(result.Streak)} 天";
+            PersistLocalStreak(AccountNumber, DisplayAlias(AccountNumber), result.Streak, result.Status.ToString(), result.TotalCredits);
         });
     }
 
@@ -744,10 +748,14 @@ public partial class MainWindow : Window
             var accounts = await _github.GetAccountStatusesAsync(repository, run.DatabaseId);
             var configured = accounts.Count(account => account.IsConfigured);
             var withStreak = accounts.Count(account => account.Streak is > 0);
+            var maxStreak = accounts.Where(a => a.Streak is > 0).Select(a => a.Streak!.Value).DefaultIfEmpty(0).Max();
             ConfiguredMetric.Text = $"{configured} 個";
-            StreakMetric.Text = $"{withStreak} 個有連續天數 · {AccountCount - configured} 未設定";
+            StreakMetric.Text = withStreak > 0
+                ? $"最高 {maxStreak} 天 · {withStreak}/{configured} 已紀錄"
+                : $"{AccountCount - configured} 未設定";
+            PersistWorkflowStreaks(accounts, run.Url);
             RenderAccounts(accounts);
-            DashboardStatus.Text = $"最近執行：{run.Url}";
+            DashboardStatus.Text = $"最近執行：{run.Url} · 連續天數已寫入本機";
         });
     }
 
@@ -771,12 +779,51 @@ public partial class MainWindow : Window
     private void RenderAccounts(IEnumerable<WorkflowAccountStatus> accounts)
     {
         AccountsPanel.Children.Clear();
+
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("68,*,150,90") };
+        header.Children.Add(new TextBlock
+        {
+            Text = "#",
+            FontSize = 12,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.SlateGray
+        });
+        var hAlias = new TextBlock
+        {
+            Text = "帳號",
+            FontSize = 12,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.SlateGray
+        };
+        Grid.SetColumn(hAlias, 1);
+        header.Children.Add(hAlias);
+        var hStatus = new TextBlock
+        {
+            Text = "狀態",
+            FontSize = 12,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.SlateGray
+        };
+        Grid.SetColumn(hStatus, 2);
+        header.Children.Add(hStatus);
+        var hStreak = new TextBlock
+        {
+            Text = "連續天數",
+            FontSize = 12,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = Brushes.SlateGray,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        Grid.SetColumn(hStreak, 3);
+        header.Children.Add(hStreak);
+        AccountsPanel.Children.Add(header);
+
         foreach (var account in accounts)
         {
             var localAlias = _aliases.GetValueOrDefault(account.Number);
             var alias = !string.IsNullOrWhiteSpace(localAlias) ? localAlias : account.Alias;
 
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("68,*,150,80") };
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("68,*,150,90") };
             row.Children.Add(new TextBlock
             {
                 Text = $"#{account.Number:00}",
@@ -812,6 +859,113 @@ public partial class MainWindow : Window
             row.Children.Add(streak);
 
             AccountsPanel.Children.Add(row);
+        }
+    }
+
+    private void PersistWorkflowStreaks(IReadOnlyList<WorkflowAccountStatus> accounts, string? source)
+    {
+        try
+        {
+            var now = DateTimeOffset.Now;
+            _streaks.UpsertMany(
+                accounts.Select(account => new AccountStreakEntry
+                {
+                    Account = account.Number,
+                    Label = account.Alias,
+                    Streak = account.Streak,
+                    Status = account.Status,
+                    UpdatedAt = now
+                }),
+                source);
+        }
+        catch
+        {
+            // Local streak cache is best-effort.
+        }
+    }
+
+    private void PersistLocalStreak(int account, string label, int? streak, string? status, int? totalCredits)
+    {
+        try
+        {
+            _streaks.UpsertMany(
+            [
+                new AccountStreakEntry
+                {
+                    Account = account,
+                    Label = label,
+                    Streak = streak,
+                    Status = status,
+                    TotalCredits = totalCredits,
+                    UpdatedAt = DateTimeOffset.Now
+                }
+            ], "local-api");
+        }
+        catch
+        {
+            // Local streak cache is best-effort.
+        }
+    }
+
+    /// <summary>
+    /// Show the last known continuous-check-in days from the local streak cache
+    /// so the dashboard is useful before the next GitHub Actions refresh.
+    /// </summary>
+    private void LoadCachedStreakDashboard()
+    {
+        try
+        {
+            if (AccountsPanel is null || StreakMetric is null)
+                return;
+
+            var snapshot = _streaks.Load();
+            if (snapshot.Accounts.Count == 0)
+                return;
+
+            var rows = Enumerable.Range(1, AccountCount)
+                .Select(number =>
+                {
+                    if (!snapshot.Accounts.TryGetValue(number.ToString(), out var entry))
+                        return new WorkflowAccountStatus(number, $"account-{number}", "尚未更新", null, false, false);
+
+                    var alias = !string.IsNullOrWhiteSpace(entry.Label)
+                        ? entry.Label!
+                        : (_aliases.GetValueOrDefault(number) is { Length: > 0 } local ? local : $"account-{number}");
+                    var status = string.IsNullOrWhiteSpace(entry.Status) ? "本機快取" : entry.Status!;
+                    var configured = entry.Streak is not null ||
+                                     (!status.Contains("略過", StringComparison.Ordinal) &&
+                                      !status.Contains("尚未設定", StringComparison.Ordinal));
+                    var successful = configured &&
+                                     !status.Contains("fail", StringComparison.OrdinalIgnoreCase) &&
+                                     !status.Contains("失敗", StringComparison.Ordinal);
+                    return new WorkflowAccountStatus(number, alias, status, entry.Streak, successful, configured);
+                })
+                .ToArray();
+
+            var withStreak = rows.Count(account => account.Streak is > 0);
+            var maxStreak = rows.Where(a => a.Streak is > 0).Select(a => a.Streak!.Value).DefaultIfEmpty(0).Max();
+            var configured = rows.Count(account => account.IsConfigured);
+            if (ConfiguredMetric is not null)
+                ConfiguredMetric.Text = $"{configured} 個";
+            StreakMetric.Text = withStreak > 0
+                ? $"最高 {maxStreak} 天 · {withStreak}/{configured} 已紀錄（本機）"
+                : "本機尚無連續天數";
+            if (RunMetric is not null && (string.IsNullOrWhiteSpace(RunMetric.Text) || RunMetric.Text == "尚未讀取"))
+                RunMetric.Text = "本機快取";
+            if (RunTimeMetric is not null && snapshot.UpdatedAt is DateTimeOffset updated)
+            {
+                RunTimeMetric.Text = TimeZoneInfo.ConvertTime(updated, GetTaipeiZone()).ToString("MM/dd HH:mm");
+            }
+            RenderAccounts(rows);
+            if (DashboardStatus is not null)
+            {
+                var source = string.IsNullOrWhiteSpace(snapshot.Source) ? "本機 streaks.json" : snapshot.Source;
+                DashboardStatus.Text = $"已載入本機連續簽到快取（{source}）。按「更新執行結果」可同步最新 GitHub Actions。";
+            }
+        }
+        catch
+        {
+            // Local streak cache is best-effort.
         }
     }
 

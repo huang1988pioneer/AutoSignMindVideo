@@ -65,7 +65,7 @@ The check-in script is deliberately strict about rewards:
 - After `POST /api/checkin`, it re-reads records (with short polling) and requires the day status to settle to "already checked in".
 - If the account was eligible for a daily reward but `total_credits` does not increase, the run fails for that account so Actions shows red instead of a false success.
 - Transient errors (`429`, `5xx`, network/timeouts) are retried with backoff.
-- GitHub Actions matrix jobs are staggered and limited with `max-parallel` to reduce burst rate-limits across many accounts.
+- GitHub Actions matrix jobs start all 33 accounts together, then each account waits a shared-seed cumulative delay so account N begins 5–15 seconds after account N-1.
 
 ## Multi-account Browser Strategy
 
@@ -115,12 +115,15 @@ The included schedule runs every day at 09:05.
 ## GitHub Actions
 
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` runs 33 isolated
-GitHub Actions matrix jobs on each schedule:
+GitHub Actions matrix jobs on each schedule (Asia/Taipei windows):
 
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 05:08 Asia/Taipei.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 11:08 Asia/Taipei.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 17:08 Asia/Taipei.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at 23:08 Asia/Taipei.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **05:00–06:00**.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **13:00–14:00**.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **21:00–22:00**.
+
+Within each window, all 33 jobs start, then execute in account order with a
+**random 5–15 second gap** between consecutive accounts (shared seed per run so
+the delay chain is consistent across matrix jobs).
 
 Each job reads only its own token secret. Empty or missing token secrets are
 reported as skipped, so you can add accounts gradually.
@@ -137,8 +140,9 @@ After all matrix check-in jobs finish, a `daily-summary` job (same style as
    - Per-account table (status badge, reward tier, total credits, streak, note)
    - Skipped account list (`#21, 22, …`)
 3. Writes the report into the workflow **Job Summary** (visible on the run page)
-4. Uploads `mindvideo-checkin-report` artifact (`checkin-daily-summary.md` + `.json`)
-5. Fails the summary job if any account status is `failed`
+4. Uploads `mindvideo-checkin-report` artifact (`checkin-daily-summary.md` + `.json` + `checkin-streaks.json`)
+5. Records each account’s continuous check-in days (`streak` / API `current_day`) in every result row and a dedicated streak ledger
+6. Fails the summary job if any account status is `failed`
 
 Locally you can rebuild a summary from a folder of result JSON files:
 

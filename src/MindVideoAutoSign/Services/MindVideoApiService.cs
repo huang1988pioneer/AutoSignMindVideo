@@ -71,7 +71,24 @@ public sealed class MindVideoApiService
         using var document = await SendAsync(token, "checkin/records", HttpMethod.Get, ct);
         var root = Data(document.RootElement);
         return new Record(
-            GetBool(root, "can_checkin_today"), GetInt(root, "total_credits"), GetInt(root, "current_day"));
+            GetBool(root, "can_checkin_today"),
+            GetInt(root, "total_credits"),
+            ExtractStreak(root));
+    }
+
+    /// <summary>Prefer API <c>current_day</c>; accept a few alternate field names.</summary>
+    private static int? ExtractStreak(JsonElement root)
+    {
+        foreach (var name in new[]
+                 {
+                     "current_day", "continuous_days", "continuous_day", "checkin_days",
+                     "check_in_days", "sign_days", "streak_days", "streak", "days"
+                 })
+        {
+            var value = GetInt(root, name);
+            if (value is >= 0) return value;
+        }
+        return null;
     }
 
     private static async Task<JsonDocument> SendAsync(string token, string path, HttpMethod method, CancellationToken ct)
