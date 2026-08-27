@@ -136,34 +136,34 @@ jobs:
           # Sequential stagger: account N starts 5–15s after account N-1.
           # Seed with GITHUB_RUN_ID so every matrix job shares the same delay chain.
           export MINDVIDEO_STAGGER_MS="$(node --input-type=module <<'NODE'
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const seed = Number(process.env.GITHUB_RUN_ID || Date.now()) >>> 0;
-const rand = mulberry32(seed);
-const account = Number(process.env.MINDVIDEO_ACCOUNT || 1);
-let ms = 0;
-const gaps = [];
-for (let i = 1; i < account; i += 1) {
-  // Inclusive 5..15 seconds between consecutive accounts.
-  const sec = 5 + Math.floor(rand() * 11);
-  gaps.push(sec);
-  ms += sec * 1000;
-}
-const gapText = gaps.length ? gaps.join("+") + "s" : "0s";
-console.error(
-  `Stagger plan: account #${account} waits ${ms}ms (gaps ${gapText}; seed=${seed})`
-);
-process.stdout.write(String(ms));
-NODE
-)"
+          function mulberry32(seed) {
+            let a = seed >>> 0;
+            return () => {
+              a = (a + 0x6d2b79f5) >>> 0;
+              let t = a;
+              t = Math.imul(t ^ (t >>> 15), t | 1);
+              t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+              return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+          }
+          const seed = Number(process.env.GITHUB_RUN_ID || Date.now()) >>> 0;
+          const rand = mulberry32(seed);
+          const account = Number(process.env.MINDVIDEO_ACCOUNT || 1);
+          let ms = 0;
+          const gaps = [];
+          for (let i = 1; i < account; i += 1) {
+            // Inclusive 5..15 seconds between consecutive accounts.
+            const sec = 5 + Math.floor(rand() * 11);
+            gaps.push(sec);
+            ms += sec * 1000;
+          }
+          const gapText = gaps.length ? gaps.join("+") + "s" : "0s";
+          console.error(
+            `Stagger plan: account #${account} waits ${ms}ms (gaps ${gapText}; seed=${seed})`
+          );
+          process.stdout.write(String(ms));
+          NODE
+          )"
           echo "Stagger: ${MINDVIDEO_STAGGER_MS}ms (sequential 5–15s after previous account)"
 
           # Always keep a result artifact even when check-in exits non-zero.

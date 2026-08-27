@@ -18,6 +18,27 @@ assert.deepEqual(
   "daily workflow must run 9 minutes after AutoSignLitVideo's 05:00/13:00/21:00 Taipei windows",
 );
 
+const workflowLines = workflow.split(/\r?\n/);
+const heredocStarts = workflowLines
+  .map((line, index) => ({ line, index }))
+  .filter(({ line }) => line.includes("<<'NODE'"));
+
+for (const { index: start } of heredocStarts) {
+  const end = workflowLines.findIndex(
+    (line, index) => index > start && line.trim() === "NODE",
+  );
+  assert.ok(end > start, "every Node heredoc must have a closing NODE marker");
+
+  const unindented = workflowLines
+    .slice(start + 1, end)
+    .filter((line) => line.trim() && !/^ {10,}\S/.test(line));
+  assert.deepEqual(
+    unindented,
+    [],
+    "Node heredoc bodies must remain inside the workflow run block",
+  );
+}
+
 for (const cron of expectedCrons) {
   assert.ok(
     workflow.includes(`github.event.schedule == '${cron}'`),
