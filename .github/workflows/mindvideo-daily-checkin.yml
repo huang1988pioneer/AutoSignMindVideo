@@ -2,19 +2,19 @@ name: MindVideo Daily Check-in
 
 on:
   schedule:
-    # Asia/Taipei 05:00–06:00 window (trigger at 05:00).
-    - cron: "0 21 * * *"
-    # Asia/Taipei 13:00–14:00 window (trigger at 13:00).
-    - cron: "0 5 * * *"
-    # Asia/Taipei 21:00–22:00 window (trigger at 21:00).
-    - cron: "0 13 * * *"
+    # Asia/Taipei 05:09–06:09 window (9 minutes after AutoSignLitVideo).
+    - cron: "9 21 * * *"
+    # Asia/Taipei 13:09–14:09 window (9 minutes after AutoSignLitVideo).
+    - cron: "9 5 * * *"
+    # Asia/Taipei 21:09–22:09 window (9 minutes after AutoSignLitVideo).
+    - cron: "9 13 * * *"
   workflow_dispatch:
 
 jobs:
   checkin:
     # Job names use accounts.json labels, e.g. checkin-1-goldshoot0720
     name: checkin-${{ matrix.account }}-${{ matrix.label }}
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 21 * * *' || github.event.schedule == '0 5 * * *' || github.event.schedule == '0 13 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '9 21 * * *' || github.event.schedule == '9 5 * * *' || github.event.schedule == '9 13 * * *'
     runs-on: ubuntu-latest
     # Account #33 may wait up to ~32×15s (~8 min) before API work.
     timeout-minutes: 15

@@ -117,9 +117,14 @@ The included schedule runs every day at 09:05.
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` runs 33 isolated
 GitHub Actions matrix jobs on each schedule (Asia/Taipei windows):
 
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **05:00–06:00**.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **13:00–14:00**.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **21:00–22:00**.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **05:09–06:09**.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **13:09–14:09**.
+- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **21:09–22:09**.
+
+The scheduled starts are 9 minutes after the matching
+[AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows
+to avoid scheduling all related workflows on the hour. GitHub Actions uses UTC
+cron values `9 21 * * *`, `9 5 * * *`, and `9 13 * * *` for these Taipei times.
 
 Within each window, all 33 jobs start, then execute in account order with a
 **random 5–15 second gap** between consecutive accounts (shared seed per run so
