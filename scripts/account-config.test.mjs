@@ -6,33 +6,33 @@ import {
   normalizeAccountConfig,
 } from "./account-config.mjs";
 
-test("repository account catalog excludes removed accounts and keeps placeholders", () => {
+test("repository account catalog excludes removed accounts and keeps remaining placeholders", () => {
   const config = loadAccountConfig();
   assert.equal(config.slotCount, 33);
-  assert.equal(config.accounts.length, 27);
+  assert.equal(config.accounts.length, 11);
   assert.deepEqual(
     config.accounts.map((account) => account.number),
-    [4, 6, 7, 8, 9, 10, 11, ...Array.from({ length: 20 }, (_, index) => index + 14)],
+    [4, 6, 7, 8, 9, 10, 11, ...Array.from({ length: 4 }, (_, index) => index + 30)],
   );
-  for (const removed of [1, 2, 3, 5, 12, 13]) {
+  for (const removed of [1, 2, 3, 5, 12, 13, ...Array.from({ length: 16 }, (_, index) => index + 14)]) {
     assert.equal(config.accounts.some((account) => account.number === removed), false);
   }
   assert.deepEqual(
     config.accounts.slice(7).map((account) => [account.number, account.label]),
-    Array.from({ length: 20 }, (_, index) => [index + 14, `account-${index + 14}`]),
+    Array.from({ length: 4 }, (_, index) => [index + 30, `account-${index + 30}`]),
   );
   assert.equal(
-    config.accounts.some((account) => /goldshoot0720|abuhg17|fengtuprinfo|chbondg2|fengwithfeng1127|tushenbyfengbro|samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng/i.test(account.label)),
+    config.accounts.some((account) => /goldshoot0720|abuhg17|fengtuprinfo|chbondg2|fengwithfeng1127|tushenbyfengbro|samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng|account-(?:1[4-9]|2[0-9])/i.test(account.label)),
     false,
   );
 });
 
 test("workflow positions follow catalog order after removals", () => {
   const matrix = buildWorkflowMatrix(loadAccountConfig());
-  assert.equal(matrix.include.length, 27);
+  assert.equal(matrix.include.length, 11);
   assert.deepEqual(
-    matrix.include.slice(5, 15).map((entry) => [entry.account, entry.position]),
-    [[10, 6], [11, 7], [14, 8], [15, 9], [16, 10], [17, 11], [18, 12], [19, 13], [20, 14], [21, 15]],
+    matrix.include.slice(7).map((entry) => [entry.account, entry.position]),
+    [[30, 8], [31, 9], [32, 10], [33, 11]],
   );
 });
 

@@ -118,7 +118,7 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
-account (currently 27) on each schedule (Asia/Taipei windows):
+account (currently 11) on each schedule (Asia/Taipei windows):
 
 - enabled `MINDVIDEO_TOKEN*` slots every day at **05:09–06:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **13:09–14:09**.
@@ -126,7 +126,7 @@ account (currently 27) on each schedule (Asia/Taipei windows):
 
 The six removed accounts (`goldshoot0720`, `abuhg17`, `fengtuprinfo`,
 `chbondg2`, `fengwithfeng1127`, and `tushenbyfengbro`) are no longer in the
-catalog. Slots `14`–`33` remain as empty placeholders (`account-14` through
+catalog. Slots `30`–`33` remain as empty placeholders (`account-30` through
 `account-33`). Missing Secrets are reported as skipped, so placeholder slots do
 not run until their corresponding tokens are added.
 

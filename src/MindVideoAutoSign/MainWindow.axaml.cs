@@ -140,7 +140,7 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrWhiteSpace(alias)) return null;
         var trimmed = alias.Trim();
-        // Skip placeholder aliases like account-22
+        // Skip placeholder aliases like account-30
         if (System.Text.RegularExpressions.Regex.IsMatch(
                 trimmed, @"^account[-_]?\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             return null;
