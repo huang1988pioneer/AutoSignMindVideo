@@ -139,7 +139,7 @@
         <StackPanel x:Name="AccountsView" IsVisible="False" Spacing="18">
           <TextBlock Text="帳號設定" FontSize="30" FontWeight="SemiBold" Foreground="#132A42" />
           <TextBlock Classes="muted"
-                     Text="名稱只保存在本機；啟用帳號沿用穩定的 GitHub Secret 編號（MINDVIDEO_TOKEN*），停用帳號不會被重新編號。"
+                     Text="名稱只保存在本機；啟用帳號與 GitHub Secret 編號（MINDVIDEO_TOKEN*）以 accounts.json 為準。"
                      TextWrapping="Wrap" />
           <Border Classes="panel">
             <StackPanel Spacing="12">

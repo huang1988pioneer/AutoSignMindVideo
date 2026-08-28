@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = fileURLToPath(new URL("../", import.meta.url));
 const summaryScript = fileURLToPath(new URL("./summarize-checkin-results.js", import.meta.url));
 
-test("summary filters non-catalog slots even when old results only contain a token name", () => {
+test("summary filters removed slots even when old results only contain a token name", () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "mindvideo-summary-"));
   const inputDir = path.join(tempRoot, "collected");
   const outputDir = path.join(tempRoot, "artifacts");
@@ -19,11 +19,11 @@ test("summary filters non-catalog slots even when old results only contain a tok
     fs.writeFileSync(
       path.join(inputDir, "results.json"),
       `${JSON.stringify([
-        { name: "MINDVIDEO_TOKEN34", status: "failed", message: "non-catalog account" },
-        { account: 34, name: "MINDVIDEO_TOKEN34", status: "failed", message: "non-catalog account" },
+        { name: "MINDVIDEO_TOKEN12", status: "failed", message: "removed account" },
+        { account: 13, name: "MINDVIDEO_TOKEN13", status: "failed", message: "removed account" },
         {
-          name: "MINDVIDEO_TOKEN1",
-          label: "goldshoot0720",
+          name: "MINDVIDEO_TOKEN4",
+          label: "feng33feng35feng3",
           status: "already_done",
           streak: 3,
           totalCredits: 100,
@@ -44,8 +44,8 @@ test("summary filters non-catalog slots even when old results only contain a tok
 
     const output = `${result.stdout}\n${result.stderr}`;
     assert.equal(result.status, 0, output);
-    assert.match(output, /#1/);
-    assert.doesNotMatch(output, /#34|non-catalog account/);
+    assert.match(output, /#4/);
+    assert.doesNotMatch(output, /#12|#13|removed account/);
     assert.ok(fs.existsSync(path.join(outputDir, "checkin-daily-summary.json")));
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });

@@ -1,38 +1,10 @@
 {
-  "1": {
-    "label": "goldshoot0720",
-    "browser": "chrome",
-    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "profileDirectory": "Default",
-    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-01"
-  },
-  "2": {
-    "label": "abuhg17",
-    "browser": "chrome",
-    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "profileDirectory": "Profile 2",
-    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-02"
-  },
-  "3": {
-    "label": "fengtuprinfo",
-    "browser": "chrome",
-    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "profileDirectory": "Profile 14",
-    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-03"
-  },
   "4": {
     "label": "feng33feng35feng3",
     "browser": "chrome",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 3",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-04"
-  },
-  "5": {
-    "label": "chbondg2",
-    "browser": "chrome",
-    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "profileDirectory": "Profile 17",
-    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-05"
   },
   "6": {
     "label": "huang1988pioneer",
@@ -44,22 +16,36 @@
   "7": {
     "label": "chbondg_outloook",
     "browser": "firefox",
-    "executablePath": "",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\firefox-profiles\\account-07"
   },
   "8": {
     "label": "gaokaolevel3iptopscorer_outlook",
     "browser": "firefox",
-    "executablePath": "",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\firefox-profiles\\account-08"
   },
   "9": {
     "label": "huang1988pioneer_outloook",
     "browser": "firefox",
-    "executablePath": "",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\firefox-profiles\\account-09"
+  },
+  "10": {
+    "label": "fengtuta_tuta",
+    "browser": "firefox",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "firefox",
+    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-10"
+  },
+  "11": {
+    "label": "fengfence_fence",
+    "browser": "firefox",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "firefox",
+    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-11"
   }
 }

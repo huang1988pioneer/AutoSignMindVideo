@@ -6,32 +6,33 @@ import {
   normalizeAccountConfig,
 } from "./account-config.mjs";
 
-test("repository account catalog includes restored accounts and placeholder slots", () => {
+test("repository account catalog excludes removed accounts and keeps placeholders", () => {
   const config = loadAccountConfig();
   assert.equal(config.slotCount, 33);
-  assert.equal(config.accounts.length, 33);
+  assert.equal(config.accounts.length, 27);
   assert.deepEqual(
     config.accounts.map((account) => account.number),
-    Array.from({ length: 33 }, (_, index) => index + 1),
+    [4, 6, 7, 8, 9, 10, 11, ...Array.from({ length: 20 }, (_, index) => index + 14)],
   );
-  assert.equal(config.accounts.find((account) => account.number === 12)?.label, "fengwithfeng1127");
-  assert.equal(config.accounts.find((account) => account.number === 13)?.label, "tushenbyfengbro");
+  for (const removed of [1, 2, 3, 5, 12, 13]) {
+    assert.equal(config.accounts.some((account) => account.number === removed), false);
+  }
   assert.deepEqual(
-    config.accounts.slice(13, 21).map((account) => [account.number, account.label]),
-    [[14, "account-14"], [15, "account-15"], [16, "account-16"], [17, "account-17"], [18, "account-18"], [19, "account-19"], [20, "account-20"], [21, "account-21"]],
+    config.accounts.slice(7).map((account) => [account.number, account.label]),
+    Array.from({ length: 20 }, (_, index) => [index + 14, `account-${index + 14}`]),
   );
   assert.equal(
-    config.accounts.some((account) => /samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng/i.test(account.label)),
+    config.accounts.some((account) => /goldshoot0720|abuhg17|fengtuprinfo|chbondg2|fengwithfeng1127|tushenbyfengbro|samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng/i.test(account.label)),
     false,
   );
 });
 
-test("workflow positions follow catalog order", () => {
+test("workflow positions follow catalog order after removals", () => {
   const matrix = buildWorkflowMatrix(loadAccountConfig());
-  assert.equal(matrix.include.length, 33);
+  assert.equal(matrix.include.length, 27);
   assert.deepEqual(
-    matrix.include.slice(9, 21).map((entry) => [entry.account, entry.position]),
-    [[10, 10], [11, 11], [12, 12], [13, 13], [14, 14], [15, 15], [16, 16], [17, 17], [18, 18], [19, 19], [20, 20], [21, 21]],
+    matrix.include.slice(5, 15).map((entry) => [entry.account, entry.position]),
+    [[10, 6], [11, 7], [14, 8], [15, 9], [16, 10], [17, 11], [18, 12], [19, 13], [20, 14], [21, 15]],
   );
 });
 

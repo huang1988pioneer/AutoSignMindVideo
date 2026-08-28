@@ -39,7 +39,7 @@ after you log in; no terminal Enter step).
 ## Setup
 
 1. Copy `.env.example` to `.env`.
-2. Paste your MindVideo token into `MINDVIDEO_TOKEN1`.
+2. Paste your MindVideo token into an enabled slot such as `MINDVIDEO_TOKEN4`.
    For more enabled accounts, use the numbers listed in `accounts.json`.
 3. Run:
 
@@ -118,16 +118,17 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
-account (currently 33) on each schedule (Asia/Taipei windows):
+account (currently 27) on each schedule (Asia/Taipei windows):
 
 - enabled `MINDVIDEO_TOKEN*` slots every day at **05:09–06:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **13:09–14:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **21:09–22:09**.
 
-Slots `12` and `13` have been reassigned to `fengwithfeng1127` and
-`tushenbyfengbro`. Slots `14`–`33` are retained as empty placeholders
-(`account-14` through `account-33`). Missing Secrets are reported as skipped,
-so these slots do not run until their corresponding tokens are added.
+The six removed accounts (`goldshoot0720`, `abuhg17`, `fengtuprinfo`,
+`chbondg2`, `fengwithfeng1127`, and `tushenbyfengbro`) are no longer in the
+catalog. Slots `14`–`33` remain as empty placeholders (`account-14` through
+`account-33`). Missing Secrets are reported as skipped, so placeholder slots do
+not run until their corresponding tokens are added.
 
 The scheduled starts are 9 minutes after the matching
 [AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows
