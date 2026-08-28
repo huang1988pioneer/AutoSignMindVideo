@@ -3,20 +3,24 @@ import test from "node:test";
 import { findDuplicateTokens } from "./audit-tokens.mjs";
 import { loadAccountConfig } from "./account-config.mjs";
 
-test("token audit only considers enabled account slots", () => {
+test("token audit follows the active account catalog", () => {
   const config = loadAccountConfig();
   const duplicates = findDuplicateTokens(
     {
       MINDVIDEO_TOKEN1: "same-token",
       MINDVIDEO_TOKEN12: "same-token",
-      MINDVIDEO_TOKEN15: "same-token",
-      MINDVIDEO_TOKEN14: "retired-only",
+      MINDVIDEO_TOKEN14: "placeholder-token",
+      MINDVIDEO_TOKEN15: "placeholder-token",
+      MINDVIDEO_TOKEN34: "same-token",
     },
     config,
   );
-  assert.deepEqual(duplicates, [["MINDVIDEO_TOKEN1", "MINDVIDEO_TOKEN12"]]);
+  assert.deepEqual(duplicates, [
+    ["MINDVIDEO_TOKEN1", "MINDVIDEO_TOKEN12"],
+    ["MINDVIDEO_TOKEN14", "MINDVIDEO_TOKEN15"],
+  ]);
 });
 
 test("empty token values are ignored", () => {
-  assert.deepEqual(findDuplicateTokens({ MINDVIDEO_TOKEN1: " ", MINDVIDEO_TOKEN14: "" }, loadAccountConfig()), []);
+  assert.deepEqual(findDuplicateTokens({ MINDVIDEO_TOKEN1: " ", MINDVIDEO_TOKEN14: "", MINDVIDEO_TOKEN34: "same-token" }, loadAccountConfig()), []);
 });

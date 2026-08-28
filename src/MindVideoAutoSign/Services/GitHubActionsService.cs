@@ -215,7 +215,7 @@ public sealed class GitHubActionsService
             rows[number] = new WorkflowAccountStatus(number, CleanAlias(alias), "已簽到", days, true, true);
         }
 
-        // Skipped section: No secret / token: **#22, 23, 24, 25, ...**
+        // Skipped section: No secret / token: **#14, 15, 16, 17, ...**
         foreach (Match match in Regex.Matches(
                      output,
                      @"No secret\s*/\s*token:\s*\*?\*?#?(?<ids>[\d,\s]+)\*?\*?",

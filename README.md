@@ -118,17 +118,17 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
-account (currently 26) on each schedule (Asia/Taipei windows):
+account (currently 33) on each schedule (Asia/Taipei windows):
 
 - enabled `MINDVIDEO_TOKEN*` slots every day at **05:09–06:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **13:09–14:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **21:09–22:09**.
 
-The retired slots are currently `14`–`20`; their existing Secrets are left
-untouched but are ignored by check-in, capture, GUI, summary, and duplicate-
-token audit code. Slots `12` and `13` have been reassigned to
-`fengwithfeng1127` and `flottojackpoteng`; their corresponding Secrets must be
-created before those two accounts can run.
+Slots `12` and `13` have been reassigned to `fengwithfeng1127` and
+`flottojackpoteng`. Slots `14`–`20` are retained as empty placeholders
+(`account-14` through `account-20`), matching the existing `21`–`33`
+placeholders. Missing Secrets are reported as skipped, so these slots do not
+run until their corresponding tokens are added.
 
 The scheduled starts are 9 minutes after the matching
 [AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows
@@ -152,7 +152,7 @@ After all matrix check-in jobs finish, a `daily-summary` job (same style as
    - Headline (`✅ All configured accounts OK` / `⚠️ N need attention`)
    - Metric table (new check-in / already done / failed / skipped / credits gained)
    - Per-account table (status badge, reward tier, total credits, streak, note)
-   - Skipped account list (`#21, 22, …`)
+   - Skipped account list (for example, `#14, #15, …`)
 3. Writes the report into the workflow **Job Summary** (visible on the run page)
 4. Uploads `mindvideo-checkin-report` artifact (`checkin-daily-summary.md` + `.json` + `checkin-streaks.json`)
 5. Records each account’s continuous check-in days (`streak` / API `current_day`) in every result row and a dedicated streak ledger
