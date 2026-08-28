@@ -19,8 +19,8 @@ test("summary filters retired slots even when old results only contain a token n
     fs.writeFileSync(
       path.join(inputDir, "results.json"),
       `${JSON.stringify([
-        { name: "MINDVIDEO_TOKEN12", status: "failed", message: "retired account" },
-        { account: 13, name: "MINDVIDEO_TOKEN13", status: "failed", message: "retired account" },
+        { name: "MINDVIDEO_TOKEN14", status: "failed", message: "retired account" },
+        { account: 15, name: "MINDVIDEO_TOKEN15", status: "failed", message: "retired account" },
         {
           name: "MINDVIDEO_TOKEN1",
           label: "goldshoot0720",
@@ -45,7 +45,7 @@ test("summary filters retired slots even when old results only contain a token n
     const output = `${result.stdout}\n${result.stderr}`;
     assert.equal(result.status, 0, output);
     assert.match(output, /#1/);
-    assert.doesNotMatch(output, /#12|#13|retired account/);
+    assert.doesNotMatch(output, /#14|#15|retired account/);
     assert.ok(fs.existsSync(path.join(outputDir, "checkin-daily-summary.json")));
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });

@@ -5,8 +5,8 @@ namespace MindVideoAutoSign.Services;
 
 /// <summary>
 /// The single account seam shared by the desktop UI and workflow-facing services.
-/// Enabled account numbers are stable Secret slots; retiring an account never
-/// renumbers the remaining tokens.
+/// Enabled account numbers are the active Secret slots. The catalog is the
+/// source of truth when a retired slot is deliberately reassigned.
 /// </summary>
 public sealed class AccountCatalog
 {

@@ -11,8 +11,8 @@ The repository includes a Windows-first Avalonia desktop app modeled after
 1. **簽到總覽** — trigger `mindvideo-daily-checkin.yml`, refresh the latest
    GitHub Actions run, and list each account’s status / streak.
 2. **帳號設定** — local aliases for the enabled `MINDVIDEO_TOKEN*` secrets.
-   Enabled accounts are defined once in `accounts.json`; Secret slot numbers
-   stay stable when an account is retired.
+   Enabled accounts are defined once in `accounts.json`; the catalog is the
+   source of truth for the active Secret slot numbers.
 3. **更新登入狀態** — capture a Bearer token in the browser, paste a token,
    save it locally, push it to a GitHub Secret, and run a direct status check
    or check-in against the MindVideo API.
@@ -118,15 +118,17 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
-account (currently 25) on each schedule (Asia/Taipei windows):
+account (currently 26) on each schedule (Asia/Taipei windows):
 
 - enabled `MINDVIDEO_TOKEN*` slots every day at **05:09–06:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **13:09–14:09**.
 - enabled `MINDVIDEO_TOKEN*` slots every day at **21:09–22:09**.
 
-The retired slots are currently `12`, `13`, `14`, and `16`–`20`; their
-existing Secrets are left untouched but are ignored by check-in, capture, GUI,
-summary, and duplicate-token audit code.
+The retired slots are currently `14`–`20`; their existing Secrets are left
+untouched but are ignored by check-in, capture, GUI, summary, and duplicate-
+token audit code. Slots `12` and `13` have been reassigned to
+`fengwithfeng1127` and `flottojackpoteng`; their corresponding Secrets must be
+created before those two accounts can run.
 
 The scheduled starts are 9 minutes after the matching
 [AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows

@@ -6,15 +6,17 @@ import {
   normalizeAccountConfig,
 } from "./account-config.mjs";
 
-test("repository account catalog keeps stable slots and excludes retired accounts", () => {
+test("repository account catalog includes the restored account slots", () => {
   const config = loadAccountConfig();
   assert.equal(config.slotCount, 33);
-  assert.equal(config.accounts.length, 25);
+  assert.equal(config.accounts.length, 26);
   assert.deepEqual(
     config.accounts.map((account) => account.number),
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33],
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33],
   );
-  for (const retired of [12, 13, 14, 16, 17, 18, 19, 20]) {
+  assert.equal(config.accounts.find((account) => account.number === 12)?.label, "fengwithfeng1127");
+  assert.equal(config.accounts.find((account) => account.number === 13)?.label, "flottojackpoteng");
+  for (const retired of [14, 15, 16, 17, 18, 19, 20]) {
     assert.equal(config.accounts.some((account) => account.number === retired), false);
   }
   assert.equal(config.accounts.some((account) => /samafengtu|fengtusama|akaonda333/i.test(account.label)), false);
@@ -22,10 +24,10 @@ test("repository account catalog keeps stable slots and excludes retired account
 
 test("workflow positions are contiguous even when Secret slots have gaps", () => {
   const matrix = buildWorkflowMatrix(loadAccountConfig());
-  assert.equal(matrix.include.length, 25);
+  assert.equal(matrix.include.length, 26);
   assert.deepEqual(
-    matrix.include.slice(9, 13).map((entry) => [entry.account, entry.position]),
-    [[10, 10], [11, 11], [15, 12], [21, 13]],
+    matrix.include.slice(9, 14).map((entry) => [entry.account, entry.position]),
+    [[10, 10], [11, 11], [12, 12], [13, 13], [21, 14]],
   );
 });
 

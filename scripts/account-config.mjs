@@ -49,8 +49,8 @@ function sourceEntries(raw, source) {
 
 /**
  * Normalize and validate the account catalog. The returned catalog contains
- * only enabled accounts; slotCount remains stable so MINDVIDEO_TOKEN numbers
- * do not get renumbered when an account is retired.
+ * only enabled accounts; slotCount remains the stable upper bound while the
+ * catalog explicitly controls which Secret slots are active.
  */
 export function normalizeAccountConfig(raw, source = "accounts.json") {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
