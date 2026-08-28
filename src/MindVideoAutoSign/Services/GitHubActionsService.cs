@@ -11,7 +11,12 @@ public sealed class GitHubActionsService
 {
     private const string Workflow = "mindvideo-daily-checkin.yml";
     private const string ReportArtifactName = "mindvideo-checkin-report";
-    private const int AccountSlots = 33;
+    private readonly AccountCatalog _accounts;
+
+    public GitHubActionsService(AccountCatalog accounts)
+    {
+        _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
+    }
 
     public Task TriggerAsync(string repository) =>
         RunGhAsync(["workflow", "run", Workflow, "--repo", repository, "--ref", "main"]);
@@ -56,7 +61,7 @@ public sealed class GitHubActionsService
     public async Task<IReadOnlyList<WorkflowAccountStatus>> GetAccountStatusesAsync(string repository, long runId)
     {
         // Prefer the structured summary artifact — it always has streak/status and avoids
-        // brittle log-prefix parsing across 33 jobs.
+        // brittle log-prefix parsing across matrix jobs.
         var fromArtifact = await TryLoadFromReportArtifactAsync(repository, runId);
         if (fromArtifact.Count > 0)
             return FillSlots(fromArtifact);
@@ -106,7 +111,7 @@ public sealed class GitHubActionsService
             var rows = new Dictionary<int, WorkflowAccountStatus>();
             foreach (var item in report.Rows)
             {
-                if (item.Account is not int number || number < 1 || number > AccountSlots)
+                if (item.Account is not int number || !_accounts.IsEnabled(number))
                     continue;
 
                 var alias = !string.IsNullOrWhiteSpace(item.Label)
@@ -144,13 +149,17 @@ public sealed class GitHubActionsService
         }
     }
 
-    private static IReadOnlyList<WorkflowAccountStatus> FillSlots(Dictionary<int, WorkflowAccountStatus> rows) =>
-        Enumerable.Range(1, AccountSlots)
-            .Select(number => rows.GetValueOrDefault(number)
-                ?? new WorkflowAccountStatus(number, $"account-{number}", "尚未設定 GitHub Secret", null, false, false))
+    private IReadOnlyList<WorkflowAccountStatus> FillSlots(Dictionary<int, WorkflowAccountStatus> rows) =>
+        _accounts.EnabledAccounts
+            .Select(account => rows.GetValueOrDefault(account.Number) is { } row
+                ? string.IsNullOrWhiteSpace(row.Alias) ||
+                  string.Equals(row.Alias, $"account-{account.Number}", StringComparison.OrdinalIgnoreCase)
+                    ? row with { Alias = account.Label }
+                    : row
+                : new WorkflowAccountStatus(account.Number, account.Label, "尚未設定 GitHub Secret", null, false, false))
             .ToArray();
 
-    internal static Dictionary<int, WorkflowAccountStatus> ParseAccountRows(string output)
+    internal Dictionary<int, WorkflowAccountStatus> ParseAccountRows(string output)
     {
         var rows = new Dictionary<int, WorkflowAccountStatus>();
 
@@ -202,6 +211,7 @@ public sealed class GitHubActionsService
             if (rows.TryGetValue(number, out var existing) && existing.Streak is not null)
                 continue;
 
+            if (!_accounts.IsEnabled(number)) continue;
             rows[number] = new WorkflowAccountStatus(number, CleanAlias(alias), "已簽到", days, true, true);
         }
 
@@ -216,6 +226,7 @@ public sealed class GitHubActionsService
                 if (!int.TryParse(id.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
                     continue;
                 if (rows.ContainsKey(number)) continue;
+                if (!_accounts.IsEnabled(number)) continue;
                 rows[number] = new WorkflowAccountStatus(
                     number,
                     $"account-{number}",
@@ -229,7 +240,7 @@ public sealed class GitHubActionsService
         return rows;
     }
 
-    private static void AddRow(
+    private void AddRow(
         Dictionary<int, WorkflowAccountStatus> rows,
         string numberText,
         string aliasRaw,
@@ -238,7 +249,7 @@ public sealed class GitHubActionsService
     {
         if (!int.TryParse(numberText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
             return;
-        if (number < 1 || number > AccountSlots)
+        if (!_accounts.IsEnabled(number))
             return;
 
         // Header / metric rows must not overwrite real account data.

@@ -11,12 +11,12 @@ namespace MindVideoAutoSign;
 
 public partial class MainWindow : Window
 {
-    private const int AccountCount = 33;
     private readonly string _workspace = FindWorkspace();
-    private readonly GitHubActionsService _github = new();
+    private readonly AccountCatalog _accountCatalog;
+    private readonly GitHubActionsService _github;
     private readonly MindVideoApiService _api = new();
     private readonly FileAccountStore _localTokens = new();
-    private readonly StreakStore _streaks = new();
+    private readonly StreakStore _streaks;
     private readonly ChromeProfileStore _chromeProfiles;
     private readonly Dictionary<int, TextBox> _aliasInputs = [];
     private readonly Dictionary<int, string> _aliases;
@@ -29,27 +29,22 @@ public partial class MainWindow : Window
         InitializeComponent();
         try
         {
+            _accountCatalog = AccountCatalog.Load(_workspace);
+            _github = new GitHubActionsService(_accountCatalog);
+            _streaks = new StreakStore(_accountCatalog);
             _chromeProfiles = new ChromeProfileStore(_workspace);
             foreach (var pair in _chromeProfiles.LoadAll())
-                _chromeByAccount[pair.Key] = pair.Value;
+            {
+                if (_accountCatalog.IsEnabled(pair.Key))
+                    _chromeByAccount[pair.Key] = pair.Value;
+            }
 
             _aliases = LoadAliases();
-            if (AccountComboBox is not null)
-            {
-                AccountComboBox.ItemsSource = Enumerable.Range(1, AccountCount)
-                    .Select(i =>
-                    {
-                        var alias = _aliases.GetValueOrDefault(i);
-                        return string.IsNullOrWhiteSpace(alias) ? $"帳號 {i:00}" : $"帳號 {i:00} · {alias}";
-                    })
-                    .ToArray();
-                if (AccountComboBox.SelectedIndex < 0)
-                    AccountComboBox.SelectedIndex = 0;
-            }
+            RefreshAccountComboLabels();
 
             BuildAliasList();
             if (ConfiguredMetric is not null)
-                ConfiguredMetric.Text = $"{_aliases.Count(pair => !IsDefaultAlias(pair.Key, pair.Value))} 個別名";
+                ConfiguredMetric.Text = $"0/{_accountCatalog.EnabledCount} 個";
             _ = LoadLocalTokensAsync();
             UpdateAccountDisplay();
             LoadCachedStreakDashboard();
@@ -78,7 +73,16 @@ public partial class MainWindow : Window
         }
     }
 
-    private int AccountNumber => Math.Max(1, AccountComboBox.SelectedIndex + 1);
+    private IReadOnlyList<AccountDefinition> EnabledAccounts => _accountCatalog.EnabledAccounts;
+
+    private int AccountNumber
+    {
+        get
+        {
+            var index = Math.Clamp(AccountComboBox?.SelectedIndex ?? 0, 0, EnabledAccounts.Count - 1);
+            return EnabledAccounts[index].Number;
+        }
+    }
     private string SecretName => $"MINDVIDEO_TOKEN{AccountNumber}";
     /// <summary>Preferred local capture path: mindvideo-token-01-alias.txt (alias suffix when set).</summary>
     private string TokenFile => GetPreferredTokenFilePath(AccountNumber);
@@ -436,8 +440,7 @@ public partial class MainWindow : Window
             var profiles = await _localTokens.LoadAsync();
             foreach (var profile in profiles)
             {
-                if (TryParseAccountNumber(profile.Name, out var number) ||
-                    TryParseAccountNumber(profile.Id, out number))
+                if (TryResolveEnabledAccountNumber(profile.Name, profile.Id, out var number))
                 {
                     if (!string.IsNullOrWhiteSpace(profile.Token))
                         _tokens[number] = profile.Token.Trim();
@@ -447,8 +450,9 @@ public partial class MainWindow : Window
             }
 
             // Also load any previously captured token files (alias-suffix or legacy).
-            for (var i = 1; i <= AccountCount; i++)
+            foreach (var account in EnabledAccounts)
             {
+                var i = account.Number;
                 if (_tokens.ContainsKey(i)) continue;
                 var file = FindExistingTokenFile(i);
                 if (file is null) continue;
@@ -459,6 +463,7 @@ public partial class MainWindow : Window
 
             UpdateAccountDisplay();
             RefreshAccountComboLabels();
+            UpdateConfiguredMetric();
         }
         catch (Exception ex)
         {
@@ -752,7 +757,7 @@ public partial class MainWindow : Window
             ConfiguredMetric.Text = $"{configured} 個";
             StreakMetric.Text = withStreak > 0
                 ? $"最高 {maxStreak} 天 · {withStreak}/{configured} 已紀錄"
-                : $"{AccountCount - configured} 未設定";
+                : $"{Math.Max(0, _accountCatalog.EnabledCount - configured)} 未設定";
             PersistWorkflowStreaks(accounts, run.Url);
             RenderAccounts(accounts);
             DashboardStatus.Text = $"最近執行：{run.Url} · 連續天數已寫入本機";
@@ -922,15 +927,16 @@ public partial class MainWindow : Window
             if (snapshot.Accounts.Count == 0)
                 return;
 
-            var rows = Enumerable.Range(1, AccountCount)
-                .Select(number =>
+            var rows = EnabledAccounts
+                .Select(account =>
                 {
+                    var number = account.Number;
                     if (!snapshot.Accounts.TryGetValue(number.ToString(), out var entry))
-                        return new WorkflowAccountStatus(number, $"account-{number}", "尚未更新", null, false, false);
+                        return new WorkflowAccountStatus(number, account.Label, "尚未更新", null, false, false);
 
                     var alias = !string.IsNullOrWhiteSpace(entry.Label)
                         ? entry.Label!
-                        : (_aliases.GetValueOrDefault(number) is { Length: > 0 } local ? local : $"account-{number}");
+                        : DisplayAlias(number);
                     var status = string.IsNullOrWhiteSpace(entry.Status) ? "本機快取" : entry.Status!;
                     var configured = entry.Streak is not null ||
                                      (!status.Contains("略過", StringComparison.Ordinal) &&
@@ -971,8 +977,9 @@ public partial class MainWindow : Window
 
     private void BuildAliasList()
     {
-        for (var i = 1; i <= AccountCount; i++)
+        foreach (var account in EnabledAccounts)
         {
+            var i = account.Number;
             var box = new TextBox
             {
                 Width = 350,
@@ -1002,7 +1009,7 @@ public partial class MainWindow : Window
         foreach (var (number, input) in _aliasInputs)
         {
             if (string.IsNullOrWhiteSpace(input.Text))
-                _aliases.Remove(number);
+                _aliases[number] = _accountCatalog.LabelFor(number);
             else
                 _aliases[number] = input.Text.Trim();
         }
@@ -1012,25 +1019,31 @@ public partial class MainWindow : Window
         RefreshAccountComboLabels();
         UpdateAccountDisplay();
         LoginStatus.Text = "已儲存帳號別名。";
-        ConfiguredMetric.Text = $"{_aliases.Count(pair => !IsDefaultAlias(pair.Key, pair.Value))} 個別名";
     }
 
     private void RefreshAccountComboLabels()
     {
-        var selected = AccountComboBox.SelectedIndex;
-        AccountComboBox.ItemsSource = Enumerable.Range(1, AccountCount)
-            .Select(i =>
+        var selectedNumber = AccountComboBox.SelectedIndex >= 0 ? AccountNumber : EnabledAccounts[0].Number;
+        AccountComboBox.ItemsSource = EnabledAccounts
+            .Select(account =>
             {
-                var alias = _aliases.GetValueOrDefault(i);
-                return string.IsNullOrWhiteSpace(alias) ? $"帳號 {i:00}" : $"帳號 {i:00} · {alias}";
+                var alias = DisplayAlias(account.Number);
+                return string.IsNullOrWhiteSpace(alias)
+                    ? $"帳號 {account.Number:00}"
+                    : $"帳號 {account.Number:00} · {alias}";
             })
             .ToArray();
-        AccountComboBox.SelectedIndex = Math.Clamp(selected, 0, AccountCount - 1);
+        var selectedIndex = EnabledAccounts
+            .Select((account, index) => (account.Number, index))
+            .FirstOrDefault(item => item.Number == selectedNumber)
+            .index;
+        AccountComboBox.SelectedIndex = selectedIndex;
     }
 
     private async Task PersistLocalTokensAsync()
     {
-        var profiles = Enumerable.Range(1, AccountCount)
+        var profiles = EnabledAccounts
+            .Select(account => account.Number)
             .Where(number => _tokens.ContainsKey(number) && !string.IsNullOrWhiteSpace(_tokens[number]))
             .Select(number => new AccountProfile
             {
@@ -1104,80 +1117,54 @@ public partial class MainWindow : Window
 
     private Dictionary<int, string> LoadAliases()
     {
-        var aliases = LoadRepoAccountsJson();
+        var aliases = EnabledAccounts.ToDictionary(account => account.Number, account => account.Label);
         try
         {
             if (!File.Exists(AliasFile)) return aliases;
             var saved = JsonSerializer.Deserialize<Dictionary<int, string>>(File.ReadAllText(AliasFile)) ?? [];
             foreach (var (number, name) in saved)
-                aliases[number] = name;
-            return aliases;
+            {
+                if (_accountCatalog.IsEnabled(number) && !string.IsNullOrWhiteSpace(name))
+                    aliases[number] = name.Trim();
+            }
         }
         catch (JsonException)
         {
-            return aliases;
+            // Keep repository labels when an old local alias file is malformed.
         }
+        return aliases;
     }
 
-    private Dictionary<int, string> LoadRepoAccountsJson()
+    private void UpdateConfiguredMetric()
     {
-        var aliases = new Dictionary<int, string>();
-        var path = Path.Combine(_workspace, "accounts.json");
-        if (!File.Exists(path)) return DefaultAliases();
-
-        try
-        {
-            using var document = JsonDocument.Parse(File.ReadAllText(path));
-            foreach (var property in document.RootElement.EnumerateObject())
-            {
-                if (!int.TryParse(property.Name, out var number)) continue;
-                var value = property.Value.GetString();
-                if (!string.IsNullOrWhiteSpace(value))
-                    aliases[number] = value.Trim();
-            }
-            return aliases.Count > 0 ? aliases : DefaultAliases();
-        }
-        catch
-        {
-            return DefaultAliases();
-        }
+        if (ConfiguredMetric is null) return;
+        var configured = EnabledAccounts.Count(account =>
+            _tokens.TryGetValue(account.Number, out var token) && !string.IsNullOrWhiteSpace(token));
+        ConfiguredMetric.Text = $"{configured}/{_accountCatalog.EnabledCount} 個";
     }
 
-    private static Dictionary<int, string> DefaultAliases() => new()
+    private bool TryResolveEnabledAccountNumber(string? first, string? second, out int number)
     {
-        [1] = "goldshoot0720",
-        [2] = "abuhg17",
-        [3] = "fengtuprinfo",
-        [4] = "feng33feng35feng3",
-        [5] = "chbondg2",
-        [6] = "huang1988pioneer",
-        [7] = "chbondg_outloook",
-        [8] = "gaokaolevel3iptopscorer_outlook",
-        [9] = "huang1988pioneer_outloook",
-        [10] = "fengtuta_tuta",
-        [11] = "fengfence_fence",
-        [12] = "samafengtu",
-        [13] = "fengtusama",
-        [14] = "fengwithting0831",
-        [15] = "fengwithfeng1127",
-        [16] = "fengwithtu1127",
-        [17] = "akaonda333",
-        [18] = "fbussinesseng",
-        [19] = "engdictatorf",
-        [20] = "flottojackpoteng",
-        [21] = "tushenbyfengbro"
-    };
+        if (TryParseAccountNumber(first, out number) && _accountCatalog.IsEnabled(number))
+            return true;
+        if (TryParseAccountNumber(second, out number) && _accountCatalog.IsEnabled(number))
+            return true;
+        number = 0;
+        return false;
+    }
 
-    private static bool IsDefaultAlias(int number, string alias) =>
-        alias.Equals($"account-{number}", StringComparison.OrdinalIgnoreCase);
-
-    private static bool TryParseAccountNumber(string? value, out int number)
+    private bool TryParseAccountNumber(string? value, out int number)
     {
         number = 0;
         if (string.IsNullOrWhiteSpace(value)) return false;
-        if (int.TryParse(value, out number) && number is >= 1 and <= AccountCount) return true;
-        var match = System.Text.RegularExpressions.Regex.Match(value, @"(?:account[-_]?|MindVideo\s*)(?<n>\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        if (match.Success && int.TryParse(match.Groups["n"].Value, out number) && number is >= 1 and <= AccountCount)
+        if (int.TryParse(value, out number) && number >= 1 && number <= _accountCatalog.SlotCount)
+            return true;
+        var match = System.Text.RegularExpressions.Regex.Match(
+            value,
+            @"(?:account[-_]?|MindVideo(?:[_\s-]*TOKEN)?\s*)(?<n>\d+)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (match.Success && int.TryParse(match.Groups["n"].Value, out number) &&
+            number >= 1 && number <= _accountCatalog.SlotCount)
             return true;
         return false;
     }

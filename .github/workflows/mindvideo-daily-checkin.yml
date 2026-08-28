@@ -10,87 +10,40 @@ on:
     - cron: "9 13 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: mindvideo-daily-checkin
+  cancel-in-progress: false
+
 jobs:
+  define-matrix:
+    name: load enabled account matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.accounts.outputs.matrix }}
+      count: ${{ steps.accounts.outputs.count }}
+      max_parallel: ${{ steps.accounts.outputs.max_parallel }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate and emit account matrix
+        id: accounts
+        run: node scripts/emit-account-matrix.mjs
+
   checkin:
-    # Job names use accounts.json labels, e.g. checkin-1-goldshoot0720
+    needs: define-matrix
+    # Job names use the labels from accounts.json, e.g. checkin-1-goldshoot0720.
     name: checkin-${{ matrix.account }}-${{ matrix.label }}
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '9 21 * * *' || github.event.schedule == '9 5 * * *' || github.event.schedule == '9 13 * * *'
     runs-on: ubuntu-latest
-    # Account #33 may wait up to ~32×15s (~8 min) before API work.
+    # The last enabled account can wait up to (enabled count - 1) × 15s.
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      # All 33 jobs must start together so cumulative 5–15s stagger can order them.
-      max-parallel: 33
-      # Keep labels in sync with repo-root accounts.json
-      matrix:
-        include:
-          - account: 1
-            label: goldshoot0720
-          - account: 2
-            label: abuhg17
-          - account: 3
-            label: fengtuprinfo
-          - account: 4
-            label: feng33feng35feng3
-          - account: 5
-            label: chbondg2
-          - account: 6
-            label: huang1988pioneer
-          - account: 7
-            label: chbondg_outloook
-          - account: 8
-            label: gaokaolevel3iptopscorer_outlook
-          - account: 9
-            label: huang1988pioneer_outloook
-          - account: 10
-            label: fengtuta_tuta
-          - account: 11
-            label: fengfence_fence
-          - account: 12
-            label: samafengtu
-          - account: 13
-            label: fengtusama
-          - account: 14
-            label: fengwithting0831
-          - account: 15
-            label: fengwithfeng1127
-          - account: 16
-            label: fengwithtu1127
-          - account: 17
-            label: akaonda333
-          - account: 18
-            label: fbussinesseng
-          - account: 19
-            label: engdictatorf
-          - account: 20
-            label: flottojackpoteng
-          - account: 21
-            label: tushenbyfengbro
-          - account: 22
-            label: account-22
-          - account: 23
-            label: account-23
-          - account: 24
-            label: account-24
-          - account: 25
-            label: account-25
-          - account: 26
-            label: account-26
-          - account: 27
-            label: account-27
-          - account: 28
-            label: account-28
-          - account: 29
-            label: account-29
-          - account: 30
-            label: account-30
-          - account: 31
-            label: account-31
-          - account: 32
-            label: account-32
-          - account: 33
-            label: account-33
+      max-parallel: ${{ fromJSON(needs.define-matrix.outputs.max_parallel) }}
+      matrix: ${{ fromJSON(needs.define-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -100,6 +53,7 @@ jobs:
         env:
           MINDVIDEO_ACCOUNT: ${{ matrix.account }}
           MINDVIDEO_ACCOUNT_LABEL: ${{ matrix.label }}
+          MINDVIDEO_STAGGER_INDEX: ${{ matrix.position }}
           MINDVIDEO_SECRET_NAME: MINDVIDEO_TOKEN${{ matrix.account }}
           MINDVIDEO_TOKEN: ${{ secrets[format('MINDVIDEO_TOKEN{0}', matrix.account)] }}
           MINDVIDEO_LANG: zh-TW
@@ -110,61 +64,15 @@ jobs:
 
           if [ -z "$MINDVIDEO_TOKEN" ]; then
             echo "$MINDVIDEO_SECRET_NAME ($MINDVIDEO_ACCOUNT_LABEL) is not configured; writing skipped result."
-            node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          const account = Number(process.env.MINDVIDEO_ACCOUNT);
-          const row = {
-            account,
-            name: process.env.MINDVIDEO_SECRET_NAME,
-            label: process.env.MINDVIDEO_ACCOUNT_LABEL || null,
-            status: "skipped",
-            message: "token not configured",
-            creditsDelta: null,
-            totalCredits: null,
-            streak: null,
-            dailyReward: null,
-            finishedAt: new Date().toISOString(),
-            runId: process.env.GITHUB_RUN_ID || null,
-            job: process.env.GITHUB_JOB || null,
-          };
-          fs.mkdirSync("artifacts", { recursive: true });
-          fs.writeFileSync("artifacts/checkin-result.json", `${JSON.stringify(row, null, 2)}\n`);
-          NODE
+            export MINDVIDEO_RESULT_STATUS=skipped
+            export MINDVIDEO_RESULT_MESSAGE="token not configured"
+            node scripts/write-checkin-result.mjs
             exit 0
           fi
 
-          # Sequential stagger: account N starts 5–15s after account N-1.
-          # Seed with GITHUB_RUN_ID so every matrix job shares the same delay chain.
-          export MINDVIDEO_STAGGER_MS="$(node --input-type=module <<'NODE'
-          function mulberry32(seed) {
-            let a = seed >>> 0;
-            return () => {
-              a = (a + 0x6d2b79f5) >>> 0;
-              let t = a;
-              t = Math.imul(t ^ (t >>> 15), t | 1);
-              t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-              return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-            };
-          }
-          const seed = Number(process.env.GITHUB_RUN_ID || Date.now()) >>> 0;
-          const rand = mulberry32(seed);
-          const account = Number(process.env.MINDVIDEO_ACCOUNT || 1);
-          let ms = 0;
-          const gaps = [];
-          for (let i = 1; i < account; i += 1) {
-            // Inclusive 5..15 seconds between consecutive accounts.
-            const sec = 5 + Math.floor(rand() * 11);
-            gaps.push(sec);
-            ms += sec * 1000;
-          }
-          const gapText = gaps.length ? gaps.join("+") + "s" : "0s";
-          console.error(
-            `Stagger plan: account #${account} waits ${ms}ms (gaps ${gapText}; seed=${seed})`
-          );
-          process.stdout.write(String(ms));
-          NODE
-          )"
-          echo "Stagger: ${MINDVIDEO_STAGGER_MS}ms (sequential 5–15s after previous account)"
+          # Every matrix job uses the same seed and active-account position.
+          export MINDVIDEO_STAGGER_MS="$(node scripts/stagger-delay.mjs)"
+          echo "Stagger: ${MINDVIDEO_STAGGER_MS}ms (sequential 5–15s after previous enabled account)"
 
           # Always keep a result artifact even when check-in exits non-zero.
           set +e
@@ -173,29 +81,12 @@ jobs:
           set -e
 
           if [ ! -f artifacts/checkin-result.json ]; then
-            node --input-type=module <<'NODE'
-          import fs from "node:fs";
-          const account = Number(process.env.MINDVIDEO_ACCOUNT);
-          const row = {
-            account,
-            name: process.env.MINDVIDEO_SECRET_NAME,
-            label: process.env.MINDVIDEO_ACCOUNT_LABEL || null,
-            status: "failed",
-            message: "check-in exited without writing result artifact",
-            creditsDelta: null,
-            totalCredits: null,
-            streak: null,
-            dailyReward: null,
-            finishedAt: new Date().toISOString(),
-            runId: process.env.GITHUB_RUN_ID || null,
-            job: process.env.GITHUB_JOB || null,
-          };
-          fs.mkdirSync("artifacts", { recursive: true });
-          fs.writeFileSync("artifacts/checkin-result.json", `${JSON.stringify(row, null, 2)}\n`);
-          NODE
+            export MINDVIDEO_RESULT_STATUS=failed
+            export MINDVIDEO_RESULT_MESSAGE="check-in exited without writing result artifact"
+            node scripts/write-checkin-result.mjs
           fi
 
-          exit $code
+          exit "$code"
       - name: Upload account result
         if: always()
         uses: actions/upload-artifact@v4
@@ -207,7 +98,9 @@ jobs:
 
   daily-summary:
     name: daily-summary
-    needs: checkin
+    needs:
+      - define-matrix
+      - checkin
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -225,9 +118,9 @@ jobs:
       - name: Build daily summary (Job Summary)
         env:
           MINDVIDEO_SUMMARY_DIR: artifacts
-          MINDVIDEO_EXPECTED_ACCOUNTS: "33"
+          MINDVIDEO_EXPECTED_ACCOUNTS: ${{ needs.define-matrix.outputs.count }}
         run: |
-          # Writes LitMedia-style markdown to GITHUB_STEP_SUMMARY + artifacts/
+          # Writes LitMedia-style markdown to GITHUB_STEP_SUMMARY + artifacts/.
           npm run summary -- collected
           echo "----- preview -----"
           if [ -f artifacts/checkin-daily-summary.md ]; then

@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { loadAccountConfig } from "./account-config.mjs";
 
 const DEFAULT_REPO = "huang1988pioneer/AutoSignMindVideo";
 /** Open MindVideo sign-in page first so Google OAuth is one click away. */
@@ -14,34 +15,7 @@ const VERIFY_ENDPOINT = "/api/checkin/records";
 const LOGIN_HOLD_MS = 5_000;
 const POLL_MS = 500;
 
-const DEFAULT_ACCOUNTS = [
-  [1, "goldshoot0720"],
-  [2, "abuhg17"],
-  [3, "fengtuprinfo"],
-  [4, "feng33feng35feng3"],
-  [5, "chbondg2"],
-  [6, "huang1988pioneer"],
-  [7, "chbondg_outloook"],
-  [8, "gaokaolevel3iptopscorer_outlook"],
-  [9, "huang1988pioneer_outloook"],
-  [10, "fengtuta_tuta"],
-  [11, "fengfence_fence"],
-  [12, "samafengtu"],
-  [13, "fengtusama"],
-  [14, "fengwithting0831"],
-  [15, "fengwithfeng1127"],
-  [16, "fengwithtu1127"],
-  [17, "akaonda333"],
-  [18, "fbussinesseng"],
-  [19, "engdictatorf"],
-  [20, "flottojackpoteng"],
-  ...Array.from({ length: 13 }, (_, index) => {
-    const number = index + 21;
-    return [number, `account-${number}`];
-  }),
-];
-
-function parseArgs() {
+function parseArgs(config) {
   const args = process.argv.slice(2);
   const options = {
     accountNumbers: null,
@@ -81,7 +55,7 @@ function parseArgs() {
     if (startNumber !== null) {
       options.accountNumbers = range(startNumber, endNumber ?? startNumber);
     } else {
-      options.accountNumbers = DEFAULT_ACCOUNTS.map(([number]) => number);
+      options.accountNumbers = config.accounts.map(({ number }) => number);
     }
   }
 
@@ -93,6 +67,9 @@ function parseArgs() {
 }
 
 function range(start, end) {
+  if (!Number.isInteger(start) || !Number.isInteger(end) || end < start) {
+    throw new Error("--start/--end must be an ascending integer range.");
+  }
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
@@ -101,7 +78,7 @@ function printHelp() {
 
 Usage:
   npm run capture:tokens
-  npm run capture:tokens -- --accounts 12,13,14
+  npm run capture:tokens -- --accounts 1,2,3
   npm run capture:tokens -- --start 21 --end 33 --update-secrets
 
 Options:
@@ -122,13 +99,17 @@ async function loadPlaywright() {
   }
 }
 
-function accountList(numbers) {
-  const labels = new Map(DEFAULT_ACCOUNTS);
-  return numbers.map((number) => ({
-    number,
-    label: labels.get(number) || `account-${number}`,
-    secretName: `MINDVIDEO_TOKEN${number}`,
-  }));
+function accountList(numbers, config) {
+  return numbers.map((number) => {
+    const account = config.accounts.find((item) => item.number === number);
+    if (!account) {
+      throw new Error(`Account #${number} is disabled or missing in accounts.json.`);
+    }
+    return {
+      ...account,
+      secretName: `MINDVIDEO_TOKEN${number}`,
+    };
+  });
 }
 
 function isMindVideoApiUrl(url) {
@@ -547,9 +528,10 @@ function writeCapturedEnv(outputFile, captured) {
 }
 
 async function main() {
-  const options = parseArgs();
+  const config = loadAccountConfig();
+  const options = parseArgs(config);
   const { chromium } = await loadPlaywright();
-  const accounts = accountList(options.accountNumbers);
+  const accounts = accountList(options.accountNumbers, config);
   const captured = [];
   const rl = readline.createInterface({ input, output });
 

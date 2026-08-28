@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import {
+  getAccountLabelMap,
+  getSecretName,
+  isAccountEnabled,
+  loadAccountConfig,
+} from "./scripts/account-config.mjs";
 
 const API_BASE = "https://api-app.mindvideo.ai";
 const APP_VERSION = "1.0.8";
@@ -10,21 +16,11 @@ const BASE_RETRY_DELAY_MS = 1_200;
 const VERIFY_POLLS = 4;
 const VERIFY_DELAY_MS = 1_500;
 
-const ACCOUNT_LABELS = loadAccountLabels();
+const ACCOUNT_CONFIG = loadAccountConfig();
+const ACCOUNT_LABELS = getAccountLabelMap(ACCOUNT_CONFIG);
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function loadAccountLabels() {
-  try {
-    const filePath = path.join(process.cwd(), "accounts.json");
-    if (!fs.existsSync(filePath)) return {};
-    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
 }
 
 function accountNumberFromSecretName(name) {
@@ -42,7 +38,7 @@ function resolveAccountLabel(secretName, accountNumber) {
     Number(process.env.MINDVIDEO_ACCOUNT);
 
   if (!Number.isFinite(number) || number <= 0) return null;
-  return ACCOUNT_LABELS[String(number)] || ACCOUNT_LABELS[number] || null;
+  return ACCOUNT_LABELS[String(number)] || null;
 }
 
 function formatAccountTag(secretName, label) {
@@ -82,6 +78,11 @@ function getTokens() {
       throw new Error("MINDVIDEO_SECRET_NAME must look like MINDVIDEO_TOKEN1.");
     }
 
+    const accountNumber = accountNumberFromSecretName(matrixSecretName);
+    if (!isAccountEnabled(ACCOUNT_CONFIG, accountNumber)) {
+      throw new Error(`${matrixSecretName} is disabled in accounts.json.`);
+    }
+
     if (!matrixToken) {
       return [];
     }
@@ -96,7 +97,10 @@ function getTokens() {
   }
 
   const tokens = Object.entries(process.env)
-    .filter(([key, value]) => /^MINDVIDEO_TOKEN\d+$/.test(key) && value?.trim())
+    .filter(([key, value]) => {
+      if (!/^MINDVIDEO_TOKEN\d+$/.test(key) || !value?.trim()) return false;
+      return isAccountEnabled(ACCOUNT_CONFIG, accountNumberFromSecretName(key));
+    })
     .sort(([a], [b]) => {
       const tokenNumber = (key) =>
         Number(key.replace("MINDVIDEO_TOKEN", "")) || Number.MAX_SAFE_INTEGER;
@@ -109,8 +113,9 @@ function getTokens() {
     }));
 
   if (tokens.length === 0) {
+    const firstSecret = getSecretName(ACCOUNT_CONFIG.accounts[0].number);
     throw new Error(
-      "Missing MINDVIDEO_TOKEN1. Copy .env.example to .env and paste your MindVideo login token."
+      `Missing ${firstSecret}. Copy .env.example to .env and paste your MindVideo login token.`
     );
   }
 

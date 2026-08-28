@@ -8,7 +8,9 @@
     "summary": "node scripts/summarize-checkin-results.js",
     "capture:tokens": "node scripts/capture-mindvideo-tokens.js",
     "capture:token-gui": "node scripts/capture-token-gui.mjs",
-    "check:schedule": "node scripts/check-daily-schedule.mjs"
+    "check:schedule": "node scripts/check-daily-schedule.mjs",
+    "check:accounts": "node scripts/emit-account-matrix.mjs",
+    "test": "node --test scripts/account-config.test.mjs scripts/audit-tokens.test.mjs scripts/stagger-delay.test.mjs scripts/summary-account-filter.test.mjs scripts/capture-account-filter.test.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0"

@@ -9,7 +9,7 @@ public sealed class MainViewModel : ObservableObject
 {
     private readonly FileAccountStore _store;
     private readonly MindVideoApiService _api;
-    private readonly GitHubActionsService _github = new();
+    private readonly GitHubActionsService _github;
     private AccountViewModel? _selectedAccount;
     private bool _isBusy;
     private string _activity = "準備就緒。請先更新 GitHub Actions 執行結果。";
@@ -22,6 +22,7 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(FileAccountStore store, MindVideoApiService api)
     {
         _store = store; _api = api;
+        _github = new GitHubActionsService(AccountCatalog.Load());
         AddAccountCommand = new AsyncCommand(AddAccountAsync, () => !IsBusy);
         RemoveAccountCommand = new AsyncCommand(RemoveAccountAsync, () => SelectedAccount is not null && !IsBusy);
         SaveCommand = new AsyncCommand(SaveAsync, () => !IsBusy);

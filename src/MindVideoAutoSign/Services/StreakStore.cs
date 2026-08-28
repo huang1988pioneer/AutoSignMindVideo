@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace MindVideoAutoSign.Services;
 
 /// <summary>
-/// Persists the latest continuous check-in days for each of the 33 accounts locally.
+/// Persists the latest continuous check-in days for enabled accounts locally.
 /// </summary>
 public sealed class StreakStore
 {
@@ -16,9 +16,11 @@ public sealed class StreakStore
     };
 
     private readonly string _filePath;
+    private readonly AccountCatalog _accounts;
 
-    public StreakStore()
+    public StreakStore(AccountCatalog accounts)
     {
+        _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
         var folder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MindVideo Auto Sign");
@@ -58,7 +60,7 @@ public sealed class StreakStore
 
         foreach (var entry in entries)
         {
-            if (entry.Account < 1 || entry.Account > 33)
+            if (!_accounts.IsEnabled(entry.Account))
                 continue;
 
             snapshot.Accounts[entry.Account.ToString()] = new AccountStreakEntry

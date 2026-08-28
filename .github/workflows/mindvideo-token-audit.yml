@@ -8,8 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: Check duplicate MindVideo tokens
         env:
+          # Secret names keep their numeric slots; only enabled accounts from
+          # accounts.json are read by audit-tokens.mjs.
           MINDVIDEO_TOKEN1: ${{ secrets.MINDVIDEO_TOKEN1 }}
           MINDVIDEO_TOKEN2: ${{ secrets.MINDVIDEO_TOKEN2 }}
           MINDVIDEO_TOKEN3: ${{ secrets.MINDVIDEO_TOKEN3 }}
@@ -43,39 +49,4 @@ jobs:
           MINDVIDEO_TOKEN31: ${{ secrets.MINDVIDEO_TOKEN31 }}
           MINDVIDEO_TOKEN32: ${{ secrets.MINDVIDEO_TOKEN32 }}
           MINDVIDEO_TOKEN33: ${{ secrets.MINDVIDEO_TOKEN33 }}
-        run: |
-          node <<'NODE'
-          const tokens = [];
-
-          const namesToCheck = [
-            ...Array.from({ length: 33 }, (_, index) => `MINDVIDEO_TOKEN${index + 1}`),
-          ];
-
-          for (const name of namesToCheck) {
-            const value = (process.env[name] || "").trim();
-            if (value) tokens.push({ name, value });
-          }
-
-          const byValue = new Map();
-          for (const token of tokens) {
-            const names = byValue.get(token.value) || [];
-            names.push(token.name);
-            byValue.set(token.value, names);
-          }
-
-          const duplicates = [...byValue.values()].filter((names) => names.length > 1);
-
-          console.log(`Checked ${tokens.length} configured token(s), ignored empty secrets.`);
-
-          if (duplicates.length === 0) {
-            console.log("No duplicate MindVideo token values found.");
-            process.exit(0);
-          }
-
-          console.log("Duplicate MindVideo token values found:");
-          for (const names of duplicates) {
-            console.log(`- ${names.join(", ")}`);
-          }
-
-          process.exit(1);
-          NODE
+        run: node scripts/audit-tokens.mjs

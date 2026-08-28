@@ -1,12 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-
-const STATUS_ORDER = {
-  failed: 0,
-  checked_in: 1,
-  already_done: 2,
-  skipped: 3,
-};
+import { getSecretName, isAccountEnabled, loadAccountConfig } from "./account-config.mjs";
 
 function walkJsonFiles(rootDir) {
   const files = [];
@@ -28,7 +22,12 @@ function walkJsonFiles(rootDir) {
   return files;
 }
 
-function loadRows(rootDir) {
+function accountNumberFromName(name) {
+  const match = String(name || "").match(/MINDVIDEO_TOKEN(\d+)/i);
+  return match ? Number(match[1]) : null;
+}
+
+function loadRows(rootDir, config) {
   const files = walkJsonFiles(rootDir);
   const rows = [];
 
@@ -45,9 +44,17 @@ function loadRows(rootDir) {
     for (const item of list) {
       if (!item || typeof item !== "object") continue;
       if (!item.name && item.account == null) continue;
+      const explicitAccount = item.account == null ? null : Number(item.account);
+      const inferredAccount = accountNumberFromName(item.name);
+      const account = Number.isInteger(explicitAccount)
+        ? explicitAccount
+        : inferredAccount;
+      if (account != null && Number.isFinite(account) && !isAccountEnabled(config, account)) {
+        continue;
+      }
       rows.push({
-        account: item.account ?? null,
-        name: item.name || (item.account != null ? `MINDVIDEO_TOKEN${item.account}` : "unknown"),
+        account: account != null && Number.isFinite(account) ? account : null,
+        name: item.name || (account != null ? `MINDVIDEO_TOKEN${account}` : "unknown"),
         label: item.label || null,
         status: item.status || "unknown",
         message: item.message || "",
@@ -167,6 +174,7 @@ function buildMarkdown(rows, meta = {}) {
 
   const generatedAt = meta.generatedAt || new Date().toISOString();
   const title = meta.title || "MindVideo daily check-in";
+  const secretHint = meta.secretHint || "the enabled MINDVIDEO_TOKEN secrets";
 
   const accountNums = rows
     .map((r) => r.account)
@@ -217,7 +225,7 @@ function buildMarkdown(rows, meta = {}) {
     maxStreak !== null && maxStreakAccounts.length
       ? `- Longest streak: **${maxStreak} day(s)** — ${maxStreakAccounts.join(", ")}`
       : null,
-    `<sub>Accounts ${accountMin}–${accountMax} · ${generatedAt}</sub>`,
+    `<sub>${meta.expectedCount ?? counts.total} enabled account(s) · slots ${accountMin}–${accountMax} · ${generatedAt}</sub>`,
     "",
   ].filter((line) => line !== null);
 
@@ -295,7 +303,7 @@ function buildMarkdown(rows, meta = {}) {
     lines.push(
       "### Next step",
       "",
-      "Add GitHub Secrets `MINDVIDEO_TOKEN1` … `MINDVIDEO_TOKEN33` (or local `.env`) before the next run.",
+      `Add the enabled GitHub Secrets ${secretHint} (or local \`.env\`) before the next run.`,
       ""
     );
   }
@@ -341,9 +349,11 @@ function main() {
   const inputDir = process.argv[2] || path.join(process.cwd(), "collected");
   const outDir = process.env.MINDVIDEO_SUMMARY_DIR || path.join(process.cwd(), "artifacts");
   const failOnMissing = process.env.MINDVIDEO_FAIL_ON_MISSING !== "0";
-  const expectedCount = Number(process.env.MINDVIDEO_EXPECTED_ACCOUNTS || 33);
+  const config = loadAccountConfig();
+  const configuredExpected = process.env.MINDVIDEO_EXPECTED_ACCOUNTS?.trim();
+  const expectedCount = configuredExpected ? Number(configuredExpected) : config.accounts.length;
 
-  const rows = loadRows(inputDir);
+  const rows = loadRows(inputDir, config);
   if (rows.length === 0) {
     const message = `No check-in result JSON found under ${inputDir}`;
     console.error(message);
@@ -369,6 +379,8 @@ function main() {
     title: "MindVideo daily check-in",
     generatedAt,
     runUrl,
+    expectedCount,
+    secretHint: config.accounts.map((account) => `\`${getSecretName(account.number)}\``).join(", "),
   });
 
   printConsoleTable(rows, counts, gained);
@@ -454,8 +466,7 @@ function main() {
     problems.push(`${counts.failed} account(s) failed`);
   }
   if (failOnMissing && Number.isFinite(expectedCount) && rows.length < expectedCount) {
-    // Only warn in summary text; missing/skipped secrets are normal while ramping up.
-    // Hard-fail only when configured accounts failed check-in.
+    problems.push(`${expectedCount - rows.length} account result(s) missing`);
   }
 
   if (problems.length > 0) {

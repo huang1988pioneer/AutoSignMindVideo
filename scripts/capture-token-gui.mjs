@@ -12,13 +12,14 @@
  *   node scripts/capture-token-gui.mjs --account 1 --browser firefox --executable-path "C:\\...\\firefox.exe"
  *
  * Default --output (when omitted) is logs/mindvideo-token-NN[-alias].txt
- * using the account label from chrome-profiles.json when available.
+ * using the account label from accounts.json when available.
  */
 import { execSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
+import { getAccountDefinition, getSecretName, loadAccountConfig } from "./account-config.mjs";
 
 /** Open MindVideo sign-in page first so Google OAuth is one click away. */
 const DEFAULT_URL = "https://www.mindvideo.ai/auth/signin/";
@@ -75,6 +76,13 @@ function parseArgs() {
     throw new Error("--account must be a positive integer");
   }
 
+  const accountConfig = loadAccountConfig();
+  const account = getAccountDefinition(accountConfig, options.account);
+  if (!account) {
+    throw new Error(`Account #${options.account} is disabled or missing in accounts.json.`);
+  }
+  options.accountLabel = account.label;
+
   // Merge account mapping from chrome-profiles.json (CLI flags win).
   const mapped = loadChromeProfileMapping(options.account);
   if (mapped) {
@@ -88,8 +96,11 @@ function parseArgs() {
     if (!options.executablePath && mapped.executablePath) {
       options.executablePath = mapped.executablePath;
     }
-    options.profileLabel = mapped.label || null;
   }
+
+  // accounts.json is the canonical account label source. The browser mapping
+  // may still provide launch details, but it must not resurrect stale labels.
+  options.profileLabel = account.label;
 
   options.browser = normalizeBrowser(options.browser, options.executablePath);
 
@@ -1343,7 +1354,7 @@ async function openGoogleLogin(page, startUrl) {
 async function main() {
   const options = parseArgs();
   const playwright = await loadPlaywright();
-  const secretName = `MINDVIDEO_TOKEN${options.account}`;
+  const secretName = getSecretName(options.account);
   const browserKind = normalizeBrowser(options.browser, options.executablePath);
 
   const launchOpts = {
@@ -1375,7 +1386,7 @@ async function main() {
     );
   } else {
     console.log(
-      `[${secretName}] Opening isolated Chrome/Edge for Google login (no chrome-profiles.json mapping).`
+      `[${secretName}] Opening isolated Chrome/Edge for Google login (no browser profile mapping).`
     );
   }
 

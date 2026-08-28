@@ -10,7 +10,9 @@ The repository includes a Windows-first Avalonia desktop app modeled after
 
 1. **簽到總覽** — trigger `mindvideo-daily-checkin.yml`, refresh the latest
    GitHub Actions run, and list each account’s status / streak.
-2. **帳號設定** — local aliases for the 33 `MINDVIDEO_TOKEN*` secrets.
+2. **帳號設定** — local aliases for the enabled `MINDVIDEO_TOKEN*` secrets.
+   Enabled accounts are defined once in `accounts.json`; Secret slot numbers
+   stay stable when an account is retired.
 3. **更新登入狀態** — capture a Bearer token in the browser, paste a token,
    save it locally, push it to a GitHub Secret, and run a direct status check
    or check-in against the MindVideo API.
@@ -38,7 +40,7 @@ after you log in; no terminal Enter step).
 
 1. Copy `.env.example` to `.env`.
 2. Paste your MindVideo token into `MINDVIDEO_TOKEN1`.
-   For more accounts, add `MINDVIDEO_TOKEN2`, `MINDVIDEO_TOKEN3`, and so on.
+   For more enabled accounts, use the numbers listed in `accounts.json`.
 3. Run:
 
 ```sh
@@ -65,7 +67,7 @@ The check-in script is deliberately strict about rewards:
 - After `POST /api/checkin`, it re-reads records (with short polling) and requires the day status to settle to "already checked in".
 - If the account was eligible for a daily reward but `total_credits` does not increase, the run fails for that account so Actions shows red instead of a false success.
 - Transient errors (`429`, `5xx`, network/timeouts) are retried with backoff.
-- GitHub Actions matrix jobs start all 33 accounts together, then each account waits a shared-seed cumulative delay so account N begins 5–15 seconds after account N-1.
+- GitHub Actions matrix jobs are generated from `accounts.json`, then each enabled account waits a shared-seed cumulative delay so the next enabled account begins 5–15 seconds after the previous one.
 
 ## Multi-account Browser Strategy
 
@@ -80,13 +82,13 @@ The local token capture helper implements this strategy:
 
 ```sh
 npm install
-npm run capture:tokens -- --accounts 12,13,14
+npm run capture:tokens -- --accounts 1,2,3
 ```
 
 For a range of accounts:
 
 ```sh
-npm run capture:tokens -- --start 12 --end 20
+npm run capture:tokens -- --start 1 --end 11
 ```
 
 The helper opens and closes a fresh Playwright browser for each account. Log in
@@ -98,7 +100,7 @@ To write captured tokens directly to GitHub Actions secrets, make sure `gh` is
 authenticated and run:
 
 ```sh
-npm run capture:tokens -- --start 12 --end 20 --update-secrets
+npm run capture:tokens -- --start 1 --end 11 --update-secrets
 ```
 
 ## Daily macOS Schedule
@@ -114,21 +116,26 @@ The included schedule runs every day at 09:05.
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/mindvideo-daily-checkin.yml` runs 33 isolated
-GitHub Actions matrix jobs on each schedule (Asia/Taipei windows):
+The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
+`accounts.json` and runs one isolated GitHub Actions matrix job per enabled
+account (currently 25) on each schedule (Asia/Taipei windows):
 
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **05:09–06:09**.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **13:09–14:09**.
-- `MINDVIDEO_TOKEN1` through `MINDVIDEO_TOKEN33` every day at **21:09–22:09**.
+- enabled `MINDVIDEO_TOKEN*` slots every day at **05:09–06:09**.
+- enabled `MINDVIDEO_TOKEN*` slots every day at **13:09–14:09**.
+- enabled `MINDVIDEO_TOKEN*` slots every day at **21:09–22:09**.
+
+The retired slots are currently `12`, `13`, `14`, and `16`–`20`; their
+existing Secrets are left untouched but are ignored by check-in, capture, GUI,
+summary, and duplicate-token audit code.
 
 The scheduled starts are 9 minutes after the matching
 [AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows
 to avoid scheduling all related workflows on the hour. GitHub Actions uses UTC
 cron values `9 21 * * *`, `9 5 * * *`, and `9 13 * * *` for these Taipei times.
 
-Within each window, all 33 jobs start, then execute in account order with a
-**random 5–15 second gap** between consecutive accounts (shared seed per run so
-the delay chain is consistent across matrix jobs).
+Within each window, all enabled jobs start, then execute in catalog order with
+a **random 5–15 second gap** between consecutive accounts (shared seed per run
+so the delay chain is consistent across matrix jobs).
 
 Each job reads only its own token secret. Empty or missing token secrets are
 reported as skipped, so you can add accounts gradually.
@@ -158,10 +165,7 @@ npm run summary -- path/to/collected-results
 Add repository secrets before enabling the matching accounts:
 
 ```text
-MINDVIDEO_TOKEN1
-MINDVIDEO_TOKEN2
-...
-MINDVIDEO_TOKEN33
+MINDVIDEO_TOKEN<number from accounts.json>
 ```
 
 If token refresh persistence is needed, also add:
@@ -171,3 +175,11 @@ GH_SECRETS_TOKEN
 ```
 
 You can also run it manually from the repository's Actions tab.
+
+Validate the catalog, schedule, and pure helper modules locally:
+
+```sh
+npm run check:accounts
+npm run check:schedule
+npm test
+```
