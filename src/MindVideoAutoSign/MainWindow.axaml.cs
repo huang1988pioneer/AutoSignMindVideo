@@ -725,21 +725,27 @@ public partial class MainWindow : Window
         {
             DashboardStatus.Text = "正在讀取 GitHub Actions…";
             var repository = await ResolveRepositoryAsync();
-            var run = await _github.GetLatestAsync(repository);
+            var runs = await _github.GetRecentRunsAsync(repository);
+            var run = runs.FirstOrDefault();
             if (run is null)
             {
                 RunMetric.Text = "尚無執行紀錄";
                 StreakMetric.Text = "—";
                 RunTimeMetric.Text = "—";
                 ConfiguredMetric.Text = "—";
+                ResetActionHistoryMetrics();
                 AccountsPanel.Children.Clear();
                 DashboardStatus.Text = "尚未找到 MindVideo Daily Check-in 執行紀錄。";
                 return;
             }
 
+            var actionHistory = GitHubActionsService.SummarizeRuns(runs, GetTaipeiZone());
             RunMetric.Text = string.IsNullOrWhiteSpace(run.Conclusion) ? run.Status : run.Conclusion!;
             RunTimeMetric.Text = TimeZoneInfo.ConvertTime(run.UpdatedAt ?? run.CreatedAt, GetTaipeiZone())
                 .ToString("MM/dd HH:mm");
+            UpdateActionHistoryMetrics(
+                actionHistory,
+                string.Equals(run.Status, "completed", StringComparison.OrdinalIgnoreCase));
 
             if (!string.Equals(run.Status, "completed", StringComparison.OrdinalIgnoreCase))
             {
@@ -760,9 +766,30 @@ public partial class MainWindow : Window
                 : $"{Math.Max(0, _accountCatalog.EnabledCount - configured)} 未設定";
             PersistWorkflowStreaks(accounts, run.Url);
             RenderAccounts(accounts);
-            DashboardStatus.Text = $"最近執行：{run.Url} · 連續天數已寫入本機";
+            DashboardStatus.Text = $"最近執行：{run.Url} · Action 歷史與連續成功天數已同步";
         });
     }
+
+    private void UpdateActionHistoryMetrics(WorkflowActionSummary summary, bool latestRunCompleted)
+    {
+        LastSuccessMetric.Text = FormatActionTime(summary.LastSuccessAt);
+        LastFailureMetric.Text = FormatActionTime(summary.LastFailureAt);
+        ActionStreakMetric.Text = latestRunCompleted
+            ? $"{summary.ConsecutiveSuccessDays} 天"
+            : "完成後更新";
+    }
+
+    private void ResetActionHistoryMetrics()
+    {
+        LastSuccessMetric.Text = "尚無紀錄";
+        LastFailureMetric.Text = "尚無紀錄";
+        ActionStreakMetric.Text = "尚無紀錄";
+    }
+
+    private static string FormatActionTime(DateTimeOffset? timestamp) =>
+        timestamp is DateTimeOffset value
+            ? TimeZoneInfo.ConvertTime(value, GetTaipeiZone()).ToString("MM/dd HH:mm")
+            : "尚無紀錄";
 
     private async Task WithDashboardBusy(Func<Task> action)
     {

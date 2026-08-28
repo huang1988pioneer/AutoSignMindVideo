@@ -48,14 +48,57 @@ public sealed class GitHubActionsService
 
     public async Task<WorkflowRunInfo?> GetLatestAsync(string repository)
     {
+        var runs = await GetRecentRunsAsync(repository, 1);
+        return runs.FirstOrDefault();
+    }
+
+    public async Task<IReadOnlyList<WorkflowRunInfo>> GetRecentRunsAsync(string repository, int limit = 100)
+    {
+        var safeLimit = Math.Clamp(limit, 1, 1000);
         var json = await RunGhAsync([
             "run", "list",
             "--workflow", Workflow,
             "--repo", repository,
-            "--limit", "1",
+            "--limit", safeLimit.ToString(CultureInfo.InvariantCulture),
             "--json", "databaseId,status,conclusion,createdAt,updatedAt,url"
         ]);
-        return JsonSerializer.Deserialize<List<WorkflowRunInfo>>(json, JsonOptions)?.FirstOrDefault();
+        return JsonSerializer.Deserialize<List<WorkflowRunInfo>>(json, JsonOptions) ?? [];
+    }
+
+    public static WorkflowActionSummary SummarizeRuns(
+        IEnumerable<WorkflowRunInfo> runs,
+        TimeZoneInfo timeZone)
+    {
+        ArgumentNullException.ThrowIfNull(runs);
+        ArgumentNullException.ThrowIfNull(timeZone);
+
+        var completed = runs
+            .Where(IsCompleted)
+            .OrderByDescending(ActionTime)
+            .ToArray();
+        var lastSuccess = completed.FirstOrDefault(IsSuccessful);
+        var lastFailure = completed.FirstOrDefault(IsFailure);
+
+        var consecutiveSuccessDays = 0;
+        var latestCompleted = completed.FirstOrDefault();
+        if (latestCompleted is not null && IsSuccessful(latestCompleted))
+        {
+            var successfulDays = completed
+                .Where(IsSuccessful)
+                .Select(run => LocalDate(run, timeZone))
+                .ToHashSet();
+            var day = LocalDate(latestCompleted, timeZone);
+            while (successfulDays.Contains(day))
+            {
+                consecutiveSuccessDays++;
+                day = day.AddDays(-1);
+            }
+        }
+
+        return new WorkflowActionSummary(
+            lastSuccess is null ? null : ActionTime(lastSuccess),
+            lastFailure is null ? null : ActionTime(lastFailure),
+            consecutiveSuccessDays);
     }
 
     public async Task<IReadOnlyList<WorkflowAccountStatus>> GetAccountStatusesAsync(string repository, long runId)
@@ -310,6 +353,27 @@ public sealed class GitHubActionsService
         status.Contains("skipped", StringComparison.OrdinalIgnoreCase) ||
         status.Contains("尚未設定", StringComparison.Ordinal);
 
+    private static bool IsCompleted(WorkflowRunInfo run) =>
+        string.Equals(run.Status, "completed", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSuccessful(WorkflowRunInfo run) =>
+        IsCompleted(run) && string.Equals(run.Conclusion, "success", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsFailure(WorkflowRunInfo run)
+    {
+        if (!IsCompleted(run)) return false;
+        var conclusion = run.Conclusion?.Trim();
+        return !string.IsNullOrWhiteSpace(conclusion) &&
+               !string.Equals(conclusion, "success", StringComparison.OrdinalIgnoreCase) &&
+               !string.Equals(conclusion, "neutral", StringComparison.OrdinalIgnoreCase) &&
+               !string.Equals(conclusion, "skipped", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DateTimeOffset ActionTime(WorkflowRunInfo run) => run.UpdatedAt ?? run.CreatedAt;
+
+    private static DateOnly LocalDate(WorkflowRunInfo run, TimeZoneInfo timeZone) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(ActionTime(run), timeZone).DateTime);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -381,6 +445,11 @@ public sealed record WorkflowRunInfo(
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
     string Url);
+
+public sealed record WorkflowActionSummary(
+    DateTimeOffset? LastSuccessAt,
+    DateTimeOffset? LastFailureAt,
+    int ConsecutiveSuccessDays);
 
 public sealed record WorkflowAccountStatus(
     int Number,

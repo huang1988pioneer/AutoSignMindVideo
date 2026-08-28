@@ -88,29 +88,40 @@
                 <Button x:Name="RefreshButton" Click="RefreshButton_OnClick">更新執行結果</Button>
               </StackPanel>
 
-              <Grid ColumnDefinitions="*,*">
+              <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
                 <StackPanel Spacing="4" Margin="0,0,12,0">
                   <TextBlock Classes="muted" Text="已設定帳號" FontSize="12" />
                   <TextBlock x:Name="ConfiguredMetric" Text="—" FontSize="20" FontWeight="SemiBold" Foreground="#0F766E" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0">
+                <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,12,0">
                   <TextBlock Classes="muted" Text="最近執行" FontSize="12" />
                   <TextBlock x:Name="RunMetric" Text="尚未讀取" FontSize="20" FontWeight="SemiBold" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Spacing="4" Margin="12,0,0,0">
+                  <TextBlock Classes="muted" Text="最近執行時間" FontSize="12" />
+                  <TextBlock x:Name="RunTimeMetric" Text="—" FontSize="18" FontWeight="SemiBold" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Spacing="4" Margin="0,16,12,0">
+                  <TextBlock Classes="muted" Text="上次成功 Action 時間" FontSize="12" TextWrapping="Wrap" />
+                  <TextBlock x:Name="LastSuccessMetric" Text="尚未同步" FontSize="18" FontWeight="SemiBold" Foreground="#0F766E" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4" Margin="12,16,12,0">
+                  <TextBlock Classes="muted" Text="上次失敗 Action 時間" FontSize="12" TextWrapping="Wrap" />
+                  <TextBlock x:Name="LastFailureMetric" Text="尚未同步" FontSize="18" FontWeight="SemiBold" Foreground="#B64040" />
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="2" Spacing="4" Margin="12,16,0,0">
+                  <TextBlock Classes="muted" Text="連續成功 Action 天數" FontSize="12" TextWrapping="Wrap" />
+                  <TextBlock x:Name="ActionStreakMetric" Text="尚未同步" FontSize="18" FontWeight="SemiBold" Foreground="#0F766E" />
                 </StackPanel>
               </Grid>
 
               <Border Height="1" Background="#DCE5EF" />
 
-              <Grid ColumnDefinitions="*,*">
-                <StackPanel Spacing="4" Margin="0,0,12,0">
-                  <TextBlock Classes="muted" Text="連續簽到摘要" FontSize="12" />
-                  <TextBlock x:Name="StreakMetric" Text="—" FontSize="18" FontWeight="SemiBold" Foreground="#0F766E" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="4" Margin="12,0,0,0">
-                  <TextBlock Classes="muted" Text="完成時間" FontSize="12" />
-                  <TextBlock x:Name="RunTimeMetric" Text="—" FontSize="18" FontWeight="SemiBold" />
-                </StackPanel>
-              </Grid>
+              <StackPanel Spacing="4">
+                <TextBlock Classes="muted" Text="帳號連續簽到摘要" FontSize="12" />
+                <TextBlock x:Name="StreakMetric" Text="—" FontSize="18" FontWeight="SemiBold" Foreground="#0F766E" />
+              </StackPanel>
 
               <TextBlock x:Name="DashboardStatus" Classes="muted"
                          Text="執行後可在 GitHub Actions 檢視各帳號的成功、失敗與未設定狀態。"
