@@ -125,10 +125,9 @@ account (currently 33) on each schedule (Asia/Taipei windows):
 - enabled `MINDVIDEO_TOKEN*` slots every day at **21:09–22:09**.
 
 Slots `12` and `13` have been reassigned to `fengwithfeng1127` and
-`flottojackpoteng`. Slots `14`–`20` are retained as empty placeholders
-(`account-14` through `account-20`), matching the existing `21`–`33`
-placeholders. Missing Secrets are reported as skipped, so these slots do not
-run until their corresponding tokens are added.
+`tushenbyfengbro`. Slots `14`–`33` are retained as empty placeholders
+(`account-14` through `account-33`). Missing Secrets are reported as skipped,
+so these slots do not run until their corresponding tokens are added.
 
 The scheduled starts are 9 minutes after the matching
 [AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows

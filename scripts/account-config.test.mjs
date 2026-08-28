@@ -15,13 +15,13 @@ test("repository account catalog includes restored accounts and placeholder slot
     Array.from({ length: 33 }, (_, index) => index + 1),
   );
   assert.equal(config.accounts.find((account) => account.number === 12)?.label, "fengwithfeng1127");
-  assert.equal(config.accounts.find((account) => account.number === 13)?.label, "flottojackpoteng");
+  assert.equal(config.accounts.find((account) => account.number === 13)?.label, "tushenbyfengbro");
   assert.deepEqual(
-    config.accounts.slice(13, 20).map((account) => [account.number, account.label]),
-    [[14, "account-14"], [15, "account-15"], [16, "account-16"], [17, "account-17"], [18, "account-18"], [19, "account-19"], [20, "account-20"]],
+    config.accounts.slice(13, 21).map((account) => [account.number, account.label]),
+    [[14, "account-14"], [15, "account-15"], [16, "account-16"], [17, "account-17"], [18, "account-18"], [19, "account-19"], [20, "account-20"], [21, "account-21"]],
   );
   assert.equal(
-    config.accounts.some((account) => /samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf/i.test(account.label)),
+    config.accounts.some((account) => /samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng/i.test(account.label)),
     false,
   );
 });
