@@ -95,7 +95,7 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Local token files use an account-alias suffix when available, e.g.
-    /// <c>mindvideo-token-04-feng33feng35feng3.txt</c>. Falls back to
+    /// <c>mindvideo-token-01-feng33feng35feng3.txt</c>. Falls back to
     /// <c>mindvideo-token-01.txt</c> when no alias is set.
     /// </summary>
     private string GetPreferredTokenFilePath(int accountNumber)

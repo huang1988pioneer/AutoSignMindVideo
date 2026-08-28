@@ -39,7 +39,7 @@ after you log in; no terminal Enter step).
 ## Setup
 
 1. Copy `.env.example` to `.env`.
-2. Paste your MindVideo token into an enabled slot such as `MINDVIDEO_TOKEN4`.
+2. Paste your MindVideo token into an enabled slot such as `MINDVIDEO_TOKEN1`.
    For more enabled accounts, use the numbers listed in `accounts.json`.
 3. Run:
 

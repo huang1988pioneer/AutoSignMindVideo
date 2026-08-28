@@ -105,7 +105,7 @@ function parseArgs() {
   options.browser = normalizeBrowser(options.browser, options.executablePath);
 
   // Default local path includes account-alias suffix when known:
-  // mindvideo-token-04-feng33feng35feng3.txt
+  // mindvideo-token-01-feng33feng35feng3.txt
   if (!options.output) {
     const nn = String(options.account).padStart(2, "0");
     const suffix = sanitizeFileSuffix(options.profileLabel);

@@ -22,7 +22,7 @@ test("summary filters removed slots even when old results only contain a token n
         { name: "MINDVIDEO_TOKEN12", status: "failed", message: "removed account" },
         { account: 13, name: "MINDVIDEO_TOKEN13", status: "failed", message: "removed account" },
         {
-          name: "MINDVIDEO_TOKEN4",
+          name: "MINDVIDEO_TOKEN1",
           label: "feng33feng35feng3",
           status: "already_done",
           streak: 3,
@@ -44,7 +44,7 @@ test("summary filters removed slots even when old results only contain a token n
 
     const output = `${result.stdout}\n${result.stderr}`;
     assert.equal(result.status, 0, output);
-    assert.match(output, /#4/);
+    assert.match(output, /#1/);
     assert.doesNotMatch(output, /#12|#13|removed account/);
     assert.ok(fs.existsSync(path.join(outputDir, "checkin-daily-summary.json")));
   } finally {

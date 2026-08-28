@@ -223,7 +223,7 @@ public sealed class GitHubActionsService
         }
 
         // Console table line (no streak column in current summarize script):
-        // - #4 checkin-4-feng33feng35feng3: checked_in | Δ +10 | total 1234 | note
+        // - #1 checkin-1-feng33feng35feng3: checked_in | Δ +10 | total 1234 | note
         foreach (Match match in Regex.Matches(
                      output,
                      @"-\s*#(?<number>\d+)\s+(?<alias>[^:\r\n]+):\s*(?<status>[^\|\r\n]+)"))
@@ -325,7 +325,7 @@ public sealed class GitHubActionsService
     private static string CleanAlias(string alias)
     {
         var text = alias.Trim();
-        // checkin-4-feng33feng35feng3 → feng33feng35feng3
+        // checkin-1-feng33feng35feng3 → feng33feng35feng3
         var match = Regex.Match(text, @"^checkin-\d+-(.+)$", RegexOptions.IgnoreCase);
         if (match.Success) return match.Groups[1].Value.Trim();
 

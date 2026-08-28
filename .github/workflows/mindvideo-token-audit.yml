@@ -23,12 +23,6 @@ jobs:
           MINDVIDEO_TOKEN5: ${{ secrets.MINDVIDEO_TOKEN5 }}
           MINDVIDEO_TOKEN6: ${{ secrets.MINDVIDEO_TOKEN6 }}
           MINDVIDEO_TOKEN7: ${{ secrets.MINDVIDEO_TOKEN7 }}
-          MINDVIDEO_TOKEN8: ${{ secrets.MINDVIDEO_TOKEN8 }}
-          MINDVIDEO_TOKEN9: ${{ secrets.MINDVIDEO_TOKEN9 }}
-          MINDVIDEO_TOKEN10: ${{ secrets.MINDVIDEO_TOKEN10 }}
-          MINDVIDEO_TOKEN11: ${{ secrets.MINDVIDEO_TOKEN11 }}
-          MINDVIDEO_TOKEN12: ${{ secrets.MINDVIDEO_TOKEN12 }}
-          MINDVIDEO_TOKEN13: ${{ secrets.MINDVIDEO_TOKEN13 }}
           MINDVIDEO_TOKEN30: ${{ secrets.MINDVIDEO_TOKEN30 }}
           MINDVIDEO_TOKEN31: ${{ secrets.MINDVIDEO_TOKEN31 }}
           MINDVIDEO_TOKEN32: ${{ secrets.MINDVIDEO_TOKEN32 }}

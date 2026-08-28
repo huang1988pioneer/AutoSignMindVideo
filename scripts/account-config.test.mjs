@@ -6,17 +6,29 @@ import {
   normalizeAccountConfig,
 } from "./account-config.mjs";
 
-test("repository account catalog excludes removed accounts and keeps remaining placeholders", () => {
+test("repository account catalog uses renumbered active slots and keeps remaining placeholders", () => {
   const config = loadAccountConfig();
   assert.equal(config.slotCount, 33);
   assert.equal(config.accounts.length, 11);
   assert.deepEqual(
     config.accounts.map((account) => account.number),
-    [4, 6, 7, 8, 9, 10, 11, ...Array.from({ length: 4 }, (_, index) => index + 30)],
+    [1, 2, 3, 4, 5, 6, 7, ...Array.from({ length: 4 }, (_, index) => index + 30)],
   );
-  for (const removed of [1, 2, 3, 5, 12, 13, ...Array.from({ length: 16 }, (_, index) => index + 14)]) {
+  for (const removed of [8, 9, 10, 11, 12, 13, ...Array.from({ length: 16 }, (_, index) => index + 14)]) {
     assert.equal(config.accounts.some((account) => account.number === removed), false);
   }
+  assert.deepEqual(
+    config.accounts.slice(0, 7).map((account) => [account.number, account.label]),
+    [
+      [1, "feng33feng35feng3"],
+      [2, "huang1988pioneer"],
+      [3, "chbondg_outloook"],
+      [4, "gaokaolevel3iptopscorer_outlook"],
+      [5, "huang1988pioneer_outloook"],
+      [6, "fengtuta_tuta"],
+      [7, "fengfence_fence"],
+    ],
+  );
   assert.deepEqual(
     config.accounts.slice(7).map((account) => [account.number, account.label]),
     Array.from({ length: 4 }, (_, index) => [index + 30, `account-${index + 30}`]),

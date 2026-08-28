@@ -1,47 +1,47 @@
 {
-  "4": {
+  "1": {
     "label": "feng33feng35feng3",
     "browser": "chrome",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 3",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-04"
   },
-  "6": {
+  "2": {
     "label": "huang1988pioneer",
     "browser": "chrome",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "Profile 1",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-06"
   },
-  "7": {
+  "3": {
     "label": "chbondg_outloook",
     "browser": "firefox",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\firefox-profiles\\account-07"
   },
-  "8": {
+  "4": {
     "label": "gaokaolevel3iptopscorer_outlook",
     "browser": "firefox",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\firefox-profiles\\account-08"
   },
-  "9": {
+  "5": {
     "label": "huang1988pioneer_outloook",
     "browser": "firefox",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\firefox-profiles\\account-09"
   },
-  "10": {
+  "6": {
     "label": "fengtuta_tuta",
     "browser": "firefox",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-10"
   },
-  "11": {
+  "7": {
     "label": "fengfence_fence",
     "browser": "firefox",
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
