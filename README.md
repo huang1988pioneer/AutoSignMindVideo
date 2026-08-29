@@ -120,9 +120,7 @@ The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
 account (currently 11) on each schedule (Asia/Taipei windows):
 
-- enabled `MINDVIDEO_TOKEN*` slots every day at **05:09–06:09**.
-- enabled `MINDVIDEO_TOKEN*` slots every day at **13:09–14:09**.
-- enabled `MINDVIDEO_TOKEN*` slots every day at **21:09–22:09**.
+- enabled `MINDVIDEO_TOKEN*` slots every day at **05:09、08:09、11:09、13:09、21:09**.
 
 The six removed accounts (`goldshoot0720`, `abuhg17`, `fengtuprinfo`,
 `chbondg2`, `fengwithfeng1127`, and `tushenbyfengbro`) are no longer in the
@@ -130,10 +128,10 @@ catalog. Slots `30`–`33` remain as empty placeholders (`account-30` through
 `account-33`). Missing Secrets are reported as skipped, so placeholder slots do
 not run until their corresponding tokens are added.
 
-The scheduled starts are 9 minutes after the matching
-[AutoSignLitVideo](https://github.com/huang1988pioneer/AutoSignLitVideo) windows
-to avoid scheduling all related workflows on the hour. GitHub Actions uses UTC
-cron values `9 21 * * *`, `9 5 * * *`, and `9 13 * * *` for these Taipei times.
+All scheduled starts use the ninth minute of the hour to avoid starting on the
+hour. GitHub Actions uses UTC cron values `9 21 * * *`, `9 0 * * *`,
+`9 3 * * *`, `9 5 * * *`, and `9 13 * * *` for the Taipei 05:09, 08:09,
+11:09, 13:09, and 21:09 times.
 
 Within each window, all enabled jobs start, then execute in catalog order with
 a **random 5–15 second gap** between consecutive accounts (shared seed per run

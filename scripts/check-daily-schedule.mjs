@@ -10,7 +10,7 @@ const workflow = fs.readFileSync(workflowPath, "utf8");
 const accountConfig = loadAccountConfig();
 const expectedMatrix = buildWorkflowMatrix(accountConfig);
 
-const expectedCrons = ["9 21 * * *", "9 5 * * *", "9 13 * * *"];
+const expectedCrons = ["9 21 * * *", "9 0 * * *", "9 3 * * *", "9 5 * * *", "9 13 * * *"];
 const actualCrons = [...workflow.matchAll(/^\s*- cron:\s*["']([^"']+)["']\s*$/gm)].map(
   ([, cron]) => cron,
 );
@@ -18,7 +18,7 @@ const actualCrons = [...workflow.matchAll(/^\s*- cron:\s*["']([^"']+)["']\s*$/gm
 assert.deepEqual(
   actualCrons,
   expectedCrons,
-  "daily workflow must run 9 minutes after AutoSignLitVideo's 05:00/13:00/21:00 Taipei windows",
+  "daily workflow must run at 05:09, 08:09, 11:09, 13:09, and 21:09 Taipei time",
 );
 
 const workflowLines = workflow.split(/\r?\n/);

@@ -4,6 +4,10 @@ on:
   schedule:
     # Asia/Taipei 05:09–06:09 window (9 minutes after AutoSignLitVideo).
     - cron: "9 21 * * *"
+    # Asia/Taipei 08:09–09:09 window (9 minutes after the hour).
+    - cron: "9 0 * * *"
+    # Asia/Taipei 11:09–12:09 window (9 minutes after the hour).
+    - cron: "9 3 * * *"
     # Asia/Taipei 13:09–14:09 window (9 minutes after AutoSignLitVideo).
     - cron: "9 5 * * *"
     # Asia/Taipei 21:09–22:09 window (9 minutes after AutoSignLitVideo).
@@ -36,7 +40,7 @@ jobs:
     needs: define-matrix
     # Job names use the labels from accounts.json, e.g. checkin-1-goldshoot0720.
     name: checkin-${{ matrix.account }}-${{ matrix.label }}
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '9 21 * * *' || github.event.schedule == '9 5 * * *' || github.event.schedule == '9 13 * * *'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '9 21 * * *' || github.event.schedule == '9 0 * * *' || github.event.schedule == '9 3 * * *' || github.event.schedule == '9 5 * * *' || github.event.schedule == '9 13 * * *'
     runs-on: ubuntu-latest
     # The last enabled account can wait up to (enabled count - 1) × 15s.
     timeout-minutes: 15
