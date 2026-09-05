@@ -1,0 +1,112 @@
+{
+  "generatedAt": "2026-09-05T19:49:13.552Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/33988161440",
+  "title": "MindVideo continuous check-in days",
+  "accounts": [
+    {
+      "account": 1,
+      "name": "MINDVIDEO_TOKEN1",
+      "label": "feng33feng35feng3",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 244,
+      "finishedAt": "2026-09-05T19:47:37.111Z"
+    },
+    {
+      "account": 2,
+      "name": "MINDVIDEO_TOKEN2",
+      "label": "huang1988pioneer",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 172,
+      "finishedAt": "2026-09-05T19:47:44.154Z"
+    },
+    {
+      "account": 3,
+      "name": "MINDVIDEO_TOKEN3",
+      "label": "chbondg_outloook",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 188,
+      "finishedAt": "2026-09-05T19:47:55.398Z"
+    },
+    {
+      "account": 4,
+      "name": "MINDVIDEO_TOKEN4",
+      "label": "gaokaolevel3iptopscorer_outlook",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 234,
+      "finishedAt": "2026-09-05T19:48:08.588Z"
+    },
+    {
+      "account": 5,
+      "name": "MINDVIDEO_TOKEN5",
+      "label": "huang1988pioneer_outloook",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 234,
+      "finishedAt": "2026-09-05T19:48:20.430Z"
+    },
+    {
+      "account": 6,
+      "name": "MINDVIDEO_TOKEN6",
+      "label": "fengtuta_tuta",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 152,
+      "finishedAt": "2026-09-05T19:48:27.102Z"
+    },
+    {
+      "account": 7,
+      "name": "MINDVIDEO_TOKEN7",
+      "label": "fengfence_fence",
+      "status": "already_done",
+      "streak": 3,
+      "totalCredits": 152,
+      "finishedAt": "2026-09-05T19:48:38.214Z"
+    },
+    {
+      "account": 30,
+      "name": "MINDVIDEO_TOKEN30",
+      "label": "goldshoot0720",
+      "status": "already_done",
+      "streak": 1,
+      "totalCredits": 360,
+      "finishedAt": "2026-09-05T19:48:49.107Z"
+    },
+    {
+      "account": 31,
+      "name": "MINDVIDEO_TOKEN31",
+      "label": "abuhg17",
+      "status": "already_done",
+      "streak": 1,
+      "totalCredits": 244,
+      "finishedAt": "2026-09-05T19:49:00.000Z"
+    },
+    {
+      "account": 32,
+      "name": "MINDVIDEO_TOKEN32",
+      "label": "chbondg2",
+      "status": "already_done",
+      "streak": 1,
+      "totalCredits": 212,
+      "finishedAt": "2026-09-05T19:49:06.042Z"
+    },
+    {
+      "account": 33,
+      "name": "MINDVIDEO_TOKEN33",
+      "label": "account-33",
+      "status": "skipped",
+      "streak": null,
+      "totalCredits": null,
+      "finishedAt": "2026-09-05T19:47:40.047Z"
+    }
+  ],
+  "summary": {
+    "recorded": 11,
+    "max": 3,
+    "min": 0,
+    "average": 2.2
+  }
+}
