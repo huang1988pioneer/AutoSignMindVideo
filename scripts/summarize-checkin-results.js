@@ -434,6 +434,9 @@ function main() {
         status: row.status,
         streak: row.streak ?? null,
         totalCredits: row.totalCredits ?? null,
+        remainingCredits: row.remainingCredits ?? null,
+        usedCredits: row.usedCredits ?? null,
+        gptImage2: row.gptImage2 ?? null,
         finishedAt: row.finishedAt || null,
       }))
       .sort((a, b) => {

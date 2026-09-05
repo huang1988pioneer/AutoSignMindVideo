@@ -160,6 +160,9 @@ After all matrix check-in jobs finish, a `daily-summary` job (same style as
    The branch is created automatically when absent; existing files are preserved.
    This uses the workflow's `GITHUB_TOKEN` with `contents: write` permission.
    If no ledger was generated, the previous published file remains unchanged.
+   Each account includes `remainingCredits` (當前點數), `usedCredits`, and
+   `gptImage2` (`remaining`, `used`, `total`) alongside its streak.
+   Unavailable credit data is recorded as `null`.
 
 Locally you can rebuild a summary from a folder of result JSON files:
 
