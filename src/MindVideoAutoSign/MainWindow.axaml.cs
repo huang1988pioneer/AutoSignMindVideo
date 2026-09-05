@@ -662,8 +662,7 @@ public partial class MainWindow : Window
                 Name = DisplayAlias(AccountNumber),
                 Token = token
             });
-            PointsStatus.Text =
-                $"{result.Message} · 總點數 {Display(result.TotalCredits)} · 連續簽到 {Display(result.Streak)} 天";
+            PointsStatus.Text = FormatPointsStatus(result);
             PersistLocalStreak(AccountNumber, DisplayAlias(AccountNumber), result.Streak, result.Status.ToString(), result.TotalCredits);
         });
     }
@@ -678,11 +677,17 @@ public partial class MainWindow : Window
                 Name = DisplayAlias(AccountNumber),
                 Token = token
             });
-            PointsStatus.Text =
-                $"{result.Message} · 總點數 {Display(result.TotalCredits)} · 連續簽到 {Display(result.Streak)} 天";
+            PointsStatus.Text = FormatPointsStatus(result);
             PersistLocalStreak(AccountNumber, DisplayAlias(AccountNumber), result.Streak, result.Status.ToString(), result.TotalCredits);
         });
     }
+
+    /// <summary>Current balance first; the lifetime total is not what the user spends.</summary>
+    private static string FormatPointsStatus(CheckinResult result) =>
+        $"{result.Message} · 當前點數 {Display(result.RemainingCredits)}"
+        + $" · 已使用點數 {Display(result.UsedCredits)}"
+        + $" · GPT Image 2 {Display(result.GptImage2Credits)}"
+        + $" · 連續簽到 {Display(result.Streak)} 天";
 
     private async Task WithTokenActionAsync(Button button, Func<string, Task> action)
     {

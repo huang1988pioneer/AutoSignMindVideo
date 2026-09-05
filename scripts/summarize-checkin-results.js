@@ -60,6 +60,9 @@ function loadRows(rootDir, config) {
         message: item.message || "",
         creditsDelta: item.creditsDelta ?? null,
         totalCredits: item.totalCredits ?? null,
+        remainingCredits: item.remainingCredits ?? null,
+        usedCredits: item.usedCredits ?? null,
+        gptImage2: item.gptImage2 ?? null,
         streak: item.streak ?? null,
         dailyReward: item.dailyReward ?? null,
         finishedAt: item.finishedAt || null,
@@ -251,20 +254,40 @@ function buildMarkdown(rows, meta = {}) {
   const activeRows = rows.filter((r) => r.status !== "skipped");
   if (activeRows.length > 0) {
     lines.push("### Account results", "");
-    lines.push("| # | Account | Status | Reward | Total | Streak | Note |");
-    lines.push("| ---: | --- | --- | ---: | ---: | ---: | --- |");
+    lines.push("| # | Account | Status | Reward | 當前點數 | 已使用點數 | Streak | Note |");
+    lines.push("| ---: | --- | --- | ---: | ---: | ---: | ---: | --- |");
 
     for (const row of activeRows) {
       const no = row.account ?? "—";
       lines.push(
         `| ${no} | ${escapeCell(shortLabel(row))} | ${statusBadge(
           row.status
-        )} | ${rewardForRow(row)} | ${fmtNum(row.totalCredits)} | ${fmtNum(
-          row.streak
-        )} | ${escapeCell(noteForRow(row))} |`
+        )} | ${rewardForRow(row)} | ${fmtNum(row.remainingCredits)} | ${fmtNum(
+          row.usedCredits
+        )} | ${fmtNum(row.streak)} | ${escapeCell(noteForRow(row))} |`
       );
     }
     lines.push("");
+  }
+
+  // GPT Image 2 has its own credit pool, separate from the general balance.
+  if (activeRows.length > 0) {
+    lines.push("### GPT Image 2 專屬點數", "");
+    lines.push("| # | Account | 當前點數 | 已使用點數 | 累計取得 |");
+    lines.push("| ---: | --- | ---: | ---: | ---: |");
+    for (const row of activeRows) {
+      const no = row.account ?? "—";
+      lines.push(
+        `| ${no} | ${escapeCell(shortLabel(row))} | ${fmtNum(
+          row.gptImage2?.remaining
+        )} | ${fmtNum(row.gptImage2?.used)} | ${fmtNum(row.gptImage2?.total)} |`
+      );
+    }
+    const gptTotal = activeRows.reduce((sum, row) => {
+      const value = Number(row.gptImage2?.remaining);
+      return Number.isFinite(value) ? sum + value : sum;
+    }, 0);
+    lines.push("", `<sub>所有帳號 GPT Image 2 剩餘合計：**${gptTotal}** 點</sub>`, "");
   }
 
   // Dedicated continuous-check-in ledger (every configured account).
@@ -339,7 +362,11 @@ function printConsoleTable(rows, counts, gained) {
     console.log(
       `- #${row.account ?? "?"} ${shortLabel(row)}: ${row.status} | Δ ${fmtDelta(
         row.creditsDelta
-      )} | total ${fmtNum(row.totalCredits)} | streak ${fmtNum(row.streak)} | ${noteForRow(row)}`
+      )} | current ${fmtNum(row.remainingCredits)} | used ${fmtNum(
+        row.usedCredits
+      )} | gpt-image-2 ${fmtNum(row.gptImage2?.remaining)} | streak ${fmtNum(
+        row.streak
+      )} | ${noteForRow(row)}`
     );
   }
   console.log("============================================\n");

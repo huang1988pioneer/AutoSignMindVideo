@@ -237,6 +237,49 @@ function summarizeCreditStats(stats) {
   return Object.keys(interesting).length ? JSON.stringify(interesting) : JSON.stringify(stats);
 }
 
+/**
+ * Current balance / used credits from GET /api/user/credits/stats,
+ * plus the GPT Image 2 dedicated pool when the account has one.
+ */
+function extractCreditSummary(stats) {
+  const root = stats?.data ?? stats;
+  if (!root || typeof root !== "object") return null;
+
+  const pool = (value) => {
+    if (!value || typeof value !== "object") return null;
+    const remaining = numberOrUndefined(value.remaining_credits);
+    const used = numberOrUndefined(value.used_credits);
+    const total = numberOrUndefined(value.total_credits);
+    if (remaining === undefined && used === undefined && total === undefined) return null;
+    return { remaining: remaining ?? null, used: used ?? null, total: total ?? null };
+  };
+
+  const overall = pool(root.total) ?? pool(root.general_credits);
+  const gptImage2 = pool(root.gpt_image_2_credits);
+  if (!overall && !gptImage2) return null;
+
+  return {
+    remainingCredits: overall?.remaining ?? null,
+    usedCredits: overall?.used ?? null,
+    gptImage2,
+  };
+}
+
+/**
+ * Used credits as the check-in page counts them: lifetime credits from
+ * /api/checkin/records minus the current balance. The credit-stats endpoint
+ * reports its own used_credits, but that only covers the sources it lists,
+ * so it can be lower than the record total implies.
+ */
+function resolveUsedCredits(recordTotal, creditSummary) {
+  const remaining = numberOrUndefined(creditSummary?.remainingCredits);
+  const total = numberOrUndefined(recordTotal);
+  if (remaining !== undefined && total !== undefined && total >= remaining) {
+    return total - remaining;
+  }
+  return numberOrUndefined(creditSummary?.usedCredits) ?? null;
+}
+
 function isRetryableError(error) {
   const message = String(error?.message || error || "");
   if (/abort|timeout|network|fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(message)) {
@@ -510,7 +553,8 @@ async function checkinAccount(account) {
 
   const before = await withRetry(account.name, () => fetchCheckinRecord(account));
   console.log(`[${account.name}] Status: ${summarizeRecord(before)}`);
-  await logCreditStats(account);
+  const beforeStats = await logCreditStats(account);
+  const beforeCreditSummary = extractCreditSummary(beforeStats);
 
   const eligibility = getEligibility(before);
 
@@ -524,6 +568,7 @@ async function checkinAccount(account) {
       after: before,
       creditsDelta: 0,
       streak: streak ?? null,
+      credits: beforeCreditSummary,
     };
   }
 
@@ -549,6 +594,7 @@ async function checkinAccount(account) {
         after,
         creditsDelta: 0,
         streak: streak ?? null,
+        credits: beforeCreditSummary,
       };
     }
     throw error;
@@ -563,7 +609,8 @@ async function checkinAccount(account) {
   const verification = await withRetry(account.name, () => verifyCheckinSettled(account, before));
   const after = verification.record;
   console.log(`[${account.name}] After check-in: ${summarizeRecord(after)}`);
-  await logCreditStats(account);
+  const afterCreditStats = await logCreditStats(account);
+  const afterCreditSummary = extractCreditSummary(afterCreditStats) ?? beforeCreditSummary;
 
   const beforeCredits = numberOrUndefined(before?.total_credits);
   const afterCredits = numberOrUndefined(after?.total_credits);
@@ -595,6 +642,7 @@ async function checkinAccount(account) {
       after,
       creditsDelta: creditsDelta ?? 0,
       streak: streak ?? null,
+      credits: afterCreditSummary,
     };
   }
 
@@ -616,6 +664,7 @@ async function checkinAccount(account) {
     after,
     creditsDelta,
     streak: streak ?? null,
+    credits: afterCreditSummary,
   };
 }
 
@@ -649,6 +698,10 @@ function normalizeResultRow(item) {
         ? null
         : item.creditsDelta,
     totalCredits: afterCredits ?? beforeCredits ?? null,
+    // Current balance / used credits from the credit-stats endpoint.
+    remainingCredits: item.credits?.remainingCredits ?? null,
+    usedCredits: resolveUsedCredits(afterCredits ?? beforeCredits, item.credits),
+    gptImage2: item.credits?.gptImage2 ?? null,
     // Always persist continuous check-in days when the API provides them.
     streak,
     dailyReward: dailyReward ?? null,
@@ -700,13 +753,19 @@ function printSummary(results) {
       item.creditsDelta === null || item.creditsDelta === undefined
         ? "n/a"
         : `${item.creditsDelta >= 0 ? "+" : ""}${item.creditsDelta}`;
-    const afterCredits = numberOrUndefined(item.after?.total_credits);
-    const creditsText = afterCredits === undefined ? "credits n/a" : `credits ${afterCredits}`;
+    const remaining = numberOrUndefined(item.credits?.remainingCredits);
+    const used = resolveUsedCredits(
+      item.after?.total_credits ?? item.before?.total_credits,
+      item.credits
+    );
+    const creditsText = `current ${remaining ?? "n/a"} | used ${used ?? "n/a"}`;
+    const gptImage2 = numberOrUndefined(item.credits?.gptImage2?.remaining);
+    const gptImage2Text = `gpt-image-2 ${gptImage2 ?? "n/a"}`;
     const streak =
       numberOrUndefined(item.streak) ?? extractStreak(item.after) ?? extractStreak(item.before);
     const streakText = streak === undefined ? "streak n/a" : `streak ${streak} day(s)`;
     console.log(
-      `- ${item.name}: ${item.status} | delta ${delta} | ${creditsText} | ${streakText} | ${item.message}`
+      `- ${item.name}: ${item.status} | delta ${delta} | ${creditsText} | ${gptImage2Text} | ${streakText} | ${item.message}`
     );
   }
   console.log("======================================\n");
@@ -717,21 +776,28 @@ function printSummary(results) {
     const lines = [
       "## MindVideo check-in summary",
       "",
-      `| Account | Status | Credit delta | Total credits | Streak | Detail |`,
-      `| --- | --- | ---: | ---: | ---: | --- |`,
+      `| Account | Status | Credit delta | 當前點數 | 已使用點數 | GPT Image 2 | Streak | Detail |`,
+      `| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |`,
       ...results.map((item) => {
         const delta =
           item.creditsDelta === null || item.creditsDelta === undefined
             ? "n/a"
             : String(item.creditsDelta);
-        const afterCredits = numberOrUndefined(item.after?.total_credits);
+        const remaining = numberOrUndefined(item.credits?.remainingCredits);
+        const used = resolveUsedCredits(
+          item.after?.total_credits ?? item.before?.total_credits,
+          item.credits
+        );
+        const gptImage2 = numberOrUndefined(item.credits?.gptImage2?.remaining);
         const streak =
           numberOrUndefined(item.streak) ??
           extractStreak(item.after) ??
           extractStreak(item.before);
-        return `| ${item.name} | ${item.status} | ${delta} | ${
-          afterCredits === undefined ? "n/a" : afterCredits
-        } | ${streak === undefined ? "n/a" : streak} | ${String(item.message || "").replace(
+        return `| ${item.name} | ${item.status} | ${delta} | ${remaining ?? "n/a"} | ${
+          used ?? "n/a"
+        } | ${gptImage2 ?? "n/a"} | ${
+          streak === undefined ? "n/a" : streak
+        } | ${String(item.message || "").replace(
           /\|/g,
           "/"
         )} |`;
