@@ -72,7 +72,6 @@ export function normalizeAccountConfig(raw, source = "accounts.json") {
   }
 
   const seenNumbers = new Set();
-  const seenLabels = new Set();
   const accounts = entries.map((entry) => {
     if (!entry || typeof entry !== "object") {
       throw configurationError(source, "each account entry must be an object");
@@ -87,11 +86,7 @@ export function normalizeAccountConfig(raw, source = "accounts.json") {
     seenNumbers.add(number);
 
     const label = normalizeLabel(entry.label, number, source);
-    const labelKey = label.toLocaleLowerCase("en-US");
-    if (seenLabels.has(labelKey)) {
-      throw configurationError(source, `duplicate account label: ${label}`);
-    }
-    seenLabels.add(labelKey);
+    // Account numbers identify slots; display labels may be shared.
     return Object.freeze({ number, label });
   }).sort((a, b) => a.number - b.number);
 

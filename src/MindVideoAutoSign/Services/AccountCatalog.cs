@@ -78,7 +78,6 @@ public sealed class AccountCatalog
             throw Invalid(source, $"slotCount {slotCount} 小於最高帳號編號。");
 
         var numbers = new HashSet<int>();
-        var labels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var accounts = new List<AccountDefinition>();
         foreach (var entry in entries)
         {
@@ -92,8 +91,7 @@ public sealed class AccountCatalog
             var label = entry.Label.Trim();
             if (label.Contains('\n') || label.Contains('\r') || label.Contains('[') || label.Contains(']'))
                 throw Invalid(source, $"帳號 #{entry.Number} 名稱含有不支援的字元。");
-            if (!labels.Add(label))
-                throw Invalid(source, $"帳號名稱重複：{label}。");
+            // Account numbers identify slots; display labels may be shared.
             accounts.Add(new AccountDefinition(entry.Number, label));
         }
 

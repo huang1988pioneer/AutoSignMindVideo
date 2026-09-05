@@ -47,5 +47,33 @@
     "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     "profileDirectory": "firefox",
     "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-11"
+  },
+  "30": {
+    "label": "goldshoot0720",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Default",
+    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-30"
+  },
+  "31": {
+    "label": "abuhg17",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Default",
+    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-31"
+  },
+  "32": {
+    "label": "chbondg2",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Default",
+    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-32"
+  },
+  "33": {
+    "label": "account-33",
+    "browser": "chrome",
+    "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDirectory": "Default",
+    "userDataDir": "C:\\Users\\chbon\\AppData\\Local\\MindVideo Auto Sign\\chrome-cdp\\account-33"
   }
 }

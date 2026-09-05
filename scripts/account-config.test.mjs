@@ -31,10 +31,10 @@ test("repository account catalog uses renumbered active slots and keeps remainin
   );
   assert.deepEqual(
     config.accounts.slice(7).map((account) => [account.number, account.label]),
-    Array.from({ length: 4 }, (_, index) => [index + 30, `account-${index + 30}`]),
+    [[30, "goldshoot0720"], [31, "abuhg17"], [32, "chbondg2"], [33, "account-33"]],
   );
   assert.equal(
-    config.accounts.some((account) => /goldshoot0720|abuhg17|fengtuprinfo|chbondg2|fengwithfeng1127|tushenbyfengbro|samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng|account-(?:1[4-9]|2[0-9])/i.test(account.label)),
+    config.accounts.some((account) => /fengtuprinfo|fengwithfeng1127|tushenbyfengbro|samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng|account-(?:1[4-9]|2[0-9])/i.test(account.label)),
     false,
   );
 });
@@ -52,6 +52,17 @@ test("legacy numeric account files remain readable during migration", () => {
   const config = normalizeAccountConfig({ "1": "alpha", "3": "gamma" }, "legacy.json");
   assert.equal(config.slotCount, 33);
   assert.deepEqual(config.accounts.map((account) => account.label), ["alpha", "gamma"]);
+});
+
+test("shared labels retain distinct workflow slots", () => {
+  const config = normalizeAccountConfig({ accounts: [
+    { number: 2, label: "huang1988pioneer" },
+    { number: 32, label: "huang1988pioneer" },
+  ] });
+  assert.deepEqual(buildWorkflowMatrix(config).include, [
+    { account: 2, label: "huang1988pioneer", position: 1 },
+    { account: 32, label: "huang1988pioneer", position: 2 },
+  ]);
 });
 
 test("invalid account catalogs fail early", () => {

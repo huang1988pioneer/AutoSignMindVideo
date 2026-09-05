@@ -122,11 +122,10 @@ account (currently 11) on each schedule (Asia/Taipei windows):
 
 - enabled `MINDVIDEO_TOKEN*` slots every day at **05:09、08:09、11:09、13:09、21:09**.
 
-The six removed accounts (`goldshoot0720`, `abuhg17`, `fengtuprinfo`,
-`chbondg2`, `fengwithfeng1127`, and `tushenbyfengbro`) are no longer in the
-catalog. Slots `30`–`33` remain as empty placeholders (`account-30` through
-`account-33`). Missing Secrets are reported as skipped, so placeholder slots do
-not run until their corresponding tokens are added.
+Slots `30`, `31`, and `32` are assigned to `goldshoot0720`, `abuhg17`, and
+`huang1988pioneer`, respectively. Slot `33` remains an empty placeholder
+(`account-33`). Missing Secrets are reported as skipped, so slots do not run
+until their corresponding tokens are added.
 
 All scheduled starts use the ninth minute of the hour to avoid starting on the
 hour. GitHub Actions uses UTC cron values `9 21 * * *`, `9 0 * * *`,
