@@ -16,7 +16,8 @@ public sealed class MindVideoApiService
         {
             var before = await FetchRecordAsync(account.Token, cancellationToken);
             if (before.CanCheckin == false)
-                return Result(CheckinStatus.AlreadyDone, "今天已簽到", before, 0);
+                return Result(CheckinStatus.AlreadyDone, "今天已簽到", before, 0,
+                    await FetchCreditsAsync(account.Token, cancellationToken));
 
             await SendAsync(account.Token, "checkin", HttpMethod.Post, cancellationToken);
             Record? after = null;
@@ -32,7 +33,8 @@ public sealed class MindVideoApiService
 
             int? delta = after.TotalCredits.HasValue && before.TotalCredits.HasValue
                 ? after.TotalCredits.Value - before.TotalCredits.Value : null;
-            return Result(CheckinStatus.CheckedIn, delta is > 0 ? $"簽到完成，獲得 {delta} 點" : "簽到完成", after, delta);
+            return Result(CheckinStatus.CheckedIn, delta is > 0 ? $"簽到完成，獲得 {delta} 點" : "簽到完成", after, delta,
+                await FetchCreditsAsync(account.Token, cancellationToken));
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -50,8 +52,9 @@ public sealed class MindVideoApiService
         try
         {
             var record = await FetchRecordAsync(account.Token, cancellationToken);
+            var credits = await FetchCreditsAsync(account.Token, cancellationToken);
             return Result(record.CanCheckin == false ? CheckinStatus.AlreadyDone : CheckinStatus.Ready,
-                record.CanCheckin == false ? "今天已簽到" : "可進行簽到", record);
+                record.CanCheckin == false ? "今天已簽到" : "可進行簽到", record, null, credits);
         }
         catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
         {
@@ -63,8 +66,48 @@ public sealed class MindVideoApiService
         }
     }
 
-    private static CheckinResult Result(CheckinStatus status, string message, Record? record, int? delta = null) =>
-        new(status, message, record?.TotalCredits, record?.CurrentDay, delta);
+    private static CheckinResult Result(
+        CheckinStatus status,
+        string message,
+        Record? record,
+        int? delta = null,
+        Credits? credits = null) =>
+        new(status, message, record?.TotalCredits, record?.CurrentDay, delta,
+            credits?.Remaining, UsedCredits(record, credits), credits?.GptImage2Remaining);
+
+    /// <summary>
+    /// Used credits as the check-in page counts them: lifetime credits from
+    /// checkin/records minus the current balance. The credit-stats endpoint has
+    /// its own used_credits, but it only covers the sources it lists.
+    /// </summary>
+    private static int? UsedCredits(Record? record, Credits? credits)
+    {
+        if (record?.TotalCredits is { } total && credits?.Remaining is { } remaining && total >= remaining)
+            return total - remaining;
+        return credits?.Used;
+    }
+
+    /// <summary>Best-effort read; the balance is informational, never a failure.</summary>
+    private static async Task<Credits?> FetchCreditsAsync(string token, CancellationToken ct)
+    {
+        try
+        {
+            using var document = await SendAsync(token, "user/credits/stats", HttpMethod.Get, ct);
+            var root = Data(document.RootElement);
+            var total = root.TryGetProperty("total", out var totalPool) ? totalPool : default;
+            var gptImage2 = root.TryGetProperty("gpt_image_2_credits", out var pool) ? pool : default;
+            return new Credits(
+                GetNumber(total, "remaining_credits"),
+                GetNumber(total, "used_credits"),
+                GetNumber(gptImage2, "remaining_credits"),
+                GetNumber(gptImage2, "used_credits"));
+        }
+        catch (OperationCanceledException) { throw; }
+        catch
+        {
+            return null;
+        }
+    }
 
     private static async Task<Record> FetchRecordAsync(string token, CancellationToken ct)
     {
@@ -113,8 +156,22 @@ public sealed class MindVideoApiService
 
     private static JsonElement Data(JsonElement root) => root.TryGetProperty("data", out var data) ? data : root;
     private static int? GetInt(JsonElement root, string name) => root.TryGetProperty(name, out var value) && value.TryGetInt32(out var result) ? result : null;
+
+    /// <summary>Credit stats mix numbers and numeric strings ("144").</summary>
+    private static int? GetNumber(JsonElement root, string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(name, out var value))
+            return null;
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number when value.TryGetInt32(out var number) => number,
+            JsonValueKind.String when int.TryParse(value.GetString(), out var parsed) => parsed,
+            _ => null
+        };
+    }
     private static bool? GetBool(JsonElement root, string name) => root.TryGetProperty(name, out var value) ? value.ValueKind switch { JsonValueKind.True => true, JsonValueKind.False => false, JsonValueKind.Number when value.TryGetInt32(out var n) => n != 0, _ => null } : null;
 
     private sealed record Record(bool? CanCheckin, int? TotalCredits, int? CurrentDay);
+    private sealed record Credits(int? Remaining, int? Used, int? GptImage2Remaining, int? GptImage2Used);
     private sealed class ApiException(HttpStatusCode statusCode, string message) : Exception(message) { public HttpStatusCode StatusCode { get; } = statusCode; }
 }

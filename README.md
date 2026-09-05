@@ -149,7 +149,8 @@ After all matrix check-in jobs finish, a `daily-summary` job (same style as
 2. Builds one combined markdown/JSON report with:
    - Headline (`✅ All configured accounts OK` / `⚠️ N need attention`)
    - Metric table (new check-in / already done / failed / skipped / credits gained)
-   - Per-account table (status badge, reward tier, total credits, streak, note)
+   - Per-account table (status badge, reward tier, 當前點數, 已使用點數, streak, note)
+   - GPT Image 2 專屬點數 table (per account current / used / lifetime, plus a total)
    - Skipped account list (for example, `#14, #15, …`)
 3. Writes the report into the workflow **Job Summary** (visible on the run page)
 4. Uploads `mindvideo-checkin-report` artifact (`checkin-daily-summary.md` + `.json` + `checkin-streaks.json`)

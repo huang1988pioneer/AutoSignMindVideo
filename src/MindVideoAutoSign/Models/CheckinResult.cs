@@ -7,4 +7,7 @@ public sealed record CheckinResult(
     string Message,
     int? TotalCredits = null,
     int? Streak = null,
-    int? CreditDelta = null);
+    int? CreditDelta = null,
+    int? RemainingCredits = null,
+    int? UsedCredits = null,
+    int? GptImage2Credits = null);
