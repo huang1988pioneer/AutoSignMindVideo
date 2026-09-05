@@ -102,6 +102,8 @@ jobs:
 
   daily-summary:
     name: daily-summary
+    permissions:
+      contents: write
     needs:
       - define-matrix
       - checkin
@@ -144,3 +146,34 @@ jobs:
             artifacts/checkin-streaks.json
           if-no-files-found: warn
           retention-days: 30
+      - name: Publish streak ledger to results branch
+        if: ${{ always() && hashFiles('artifacts/checkin-streaks.json') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'JSON.parse(require("fs").readFileSync("artifacts/checkin-streaks.json", "utf8"))'
+          publish_dir="$(mktemp -d)"
+          git init "$publish_dir"
+          git -C "$publish_dir" remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$auth"
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          refs="$(git -C "$publish_dir" ls-remote --heads origin refs/heads/results)"
+          if [ -n "$refs" ]; then
+            git -C "$publish_dir" fetch --depth=1 origin results
+            git -C "$publish_dir" checkout -b results FETCH_HEAD
+          else
+            git -C "$publish_dir" checkout --orphan results
+          fi
+          cp artifacts/checkin-streaks.json "$publish_dir/streaks.json"
+          git -C "$publish_dir" config user.name 'github-actions[bot]'
+          git -C "$publish_dir" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$publish_dir" add streaks.json
+          if ! git -C "$publish_dir" diff --cached --quiet; then
+            git -C "$publish_dir" commit -m "Update streaks for run $GITHUB_RUN_ID"
+            git -C "$publish_dir" push origin HEAD:results
+          fi

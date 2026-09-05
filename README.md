@@ -155,6 +155,11 @@ After all matrix check-in jobs finish, a `daily-summary` job (same style as
 4. Uploads `mindvideo-checkin-report` artifact (`checkin-daily-summary.md` + `.json` + `checkin-streaks.json`)
 5. Records each account’s continuous check-in days (`streak` / API `current_day`) in every result row and a dedicated streak ledger
 6. Fails the summary job if any account status is `failed`
+7. Publishes the generated streak ledger to `streaks.json` at the root of the
+   `results` branch on every run, including reports with failed accounts.
+   The branch is created automatically when absent; existing files are preserved.
+   This uses the workflow's `GITHUB_TOKEN` with `contents: write` permission.
+   If no ledger was generated, the previous published file remains unchanged.
 
 Locally you can rebuild a summary from a folder of result JSON files:
 
