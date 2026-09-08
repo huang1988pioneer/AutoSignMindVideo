@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-08T08:01:46.146Z",
-  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/34202143307",
+  "generatedAt": "2026-09-08T09:35:13.228Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/34210644866",
   "title": "MindVideo continuous check-in days",
   "accounts": [
     {
@@ -17,7 +17,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:00:11.732Z"
+      "finishedAt": "2026-09-08T09:33:38.791Z"
     },
     {
       "account": 2,
@@ -33,7 +33,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:00:23.257Z"
+      "finishedAt": "2026-09-08T09:33:47.581Z"
     },
     {
       "account": 3,
@@ -49,7 +49,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:00:34.541Z"
+      "finishedAt": "2026-09-08T09:33:53.338Z"
     },
     {
       "account": 4,
@@ -65,7 +65,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:00:42.411Z"
+      "finishedAt": "2026-09-08T09:34:02.458Z"
     },
     {
       "account": 5,
@@ -81,7 +81,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:00:51.863Z"
+      "finishedAt": "2026-09-08T09:34:19.465Z"
     },
     {
       "account": 6,
@@ -97,7 +97,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:01:26.144Z"
+      "finishedAt": "2026-09-08T09:34:41.978Z"
     },
     {
       "account": 7,
@@ -113,7 +113,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-09-08T08:01:17.055Z"
+      "finishedAt": "2026-09-08T09:34:28.810Z"
     },
     {
       "account": 30,
@@ -129,7 +129,7 @@
         "used": 7,
         "total": 100
       },
-      "finishedAt": "2026-09-08T08:01:24.280Z"
+      "finishedAt": "2026-09-08T09:34:41.579Z"
     },
     {
       "account": 31,
@@ -145,7 +145,7 @@
         "used": 2,
         "total": 100
       },
-      "finishedAt": "2026-09-08T08:01:28.900Z"
+      "finishedAt": "2026-09-08T09:34:54.225Z"
     },
     {
       "account": 32,
@@ -161,7 +161,7 @@
         "used": 5,
         "total": 100
       },
-      "finishedAt": "2026-09-08T08:01:36.337Z"
+      "finishedAt": "2026-09-08T09:34:59.280Z"
     },
     {
       "account": 33,
@@ -173,7 +173,7 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-09-08T08:00:08.621Z"
+      "finishedAt": "2026-09-08T09:34:14.452Z"
     }
   ],
   "summary": {
