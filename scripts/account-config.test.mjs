@@ -24,7 +24,7 @@ test("repository account catalog uses renumbered active slots and keeps remainin
       [2, "huang1988pioneer"],
       [3, "chbondg_outloook"],
       [4, "gaokaolevel3iptopscorer_outlook"],
-      [5, "huang1988pioneer_outloook"],
+      [5, "huang1988pioneer_outlook"],
       [6, "fengtuta_tuta"],
       [7, "fengfence_fence"],
     ],
