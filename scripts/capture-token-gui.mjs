@@ -190,7 +190,8 @@ function isStockMozillaFirefoxPath(executablePath) {
     return true;
   }
   const base = path.basename(lower);
-  if (base !== "firefox.exe" && base !== "firefox" && base !== "firefox-bin") return false;
+  // Chrome / Edge are not Firefox. Passing them to Playwright opens the profile folder as a page.
+  if (base !== "firefox.exe" && base !== "firefox" && base !== "firefox-bin") return true;
   if (lower.includes("mozilla firefox") || lower.includes("\\firefox\\")) return true;
   // Any non-ms-playwright firefox binary → treat as stock
   return !lower.includes("ms-playwright");
@@ -207,17 +208,43 @@ function withTimeout(promise, ms, label) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-function defaultFirefoxProfileDir(account) {
-  const accountKey = account > 0 ? String(account).padStart(2, "0") : "xx";
-  // Prefer LocalAppData ASCII path (no Chinese path segments).
-  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+function isWindowsAbsolutePath(value) {
+  return /(?:^|[\\/])[A-Za-z]:[\\/]/.test(String(value || ""));
+}
+
+function isForeignWindowsPath(value) {
+  return process.platform !== "win32" && isWindowsAbsolutePath(value);
+}
+
+function isFirefoxProfilePath(value) {
+  return /firefox-profiles|firefox-account-/i.test(String(value || "").replace(/\\/g, "/"));
+}
+
+function dedicatedProfileDir(kind, accountKey) {
+  const folder = kind === "firefox" ? "firefox-profiles" : "chrome-cdp";
+  if (process.platform === "darwin") {
     return path.join(
-      process.env.LOCALAPPDATA,
+      os.homedir(),
+      "Library",
+      "Application Support",
       "MindVideo Auto Sign",
-      "firefox-profiles",
+      folder,
       `account-${accountKey}`
     );
   }
+  if (process.platform === "win32") {
+    const root = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+    return path.join(root, "MindVideo Auto Sign", folder, `account-${accountKey}`);
+  }
+  return path.join(os.homedir(), ".local", "share", "MindVideo Auto Sign", folder, `account-${accountKey}`);
+}
+
+function defaultFirefoxProfileDir(account) {
+  const accountKey = account > 0 ? String(account).padStart(2, "0") : "xx";
+  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
+    return dedicatedProfileDir("firefox", accountKey);
+  }
+  if (process.platform === "darwin") return dedicatedProfileDir("firefox", accountKey);
   return path.join(process.cwd(), ".browser-profiles", `firefox-account-${accountKey}`);
 }
 
@@ -285,7 +312,7 @@ function resolveFirefoxProfileDir(launchOpts = {}) {
   const account = Number(launchOpts.account) || 0;
   const fallback = defaultFirefoxProfileDir(account);
   let requested = (launchOpts.userDataDir || "").trim();
-  if (!requested) return fallback;
+  if (!requested || isForeignWindowsPath(requested)) return fallback;
   return resolveExistingFirefoxProfile(requested);
 }
 
@@ -332,11 +359,11 @@ function prepareFirefoxProfileForLaunch(profileDir) {
         "請依序處理：",
         "1) 關閉所有 Firefox 視窗（不要只按 X 後仍留在背景）。",
         "2) 工作管理員（Ctrl+Shift+Esc）結束所有 firefox.exe。",
-        "3) 再重試「Google 登入並擷取 Token」。",
+        "3) 再重試「登入並擷取 Token」。",
         "",
         "更穩定做法：改用獨立英文路徑的專用 Profile（App 內按「還原 Firefox 預設」），",
         "例如 %LOCALAPPDATA%\\MindVideo Auto Sign\\firefox-profiles\\account-NN",
-        "首次在該專用 Profile 登入一次 Google 即可，不要用日常上網的 Profile。",
+        "首次在該專用 Profile 登入一次即可，不要用日常上網的 Profile。",
       ].join("\n")
     );
   }
@@ -769,6 +796,14 @@ function resolveCdpUserDataDir(launchOpts = {}) {
   if (!requested) {
     return defaultDir;
   }
+  if (isForeignWindowsPath(requested) || isFirefoxProfilePath(requested)) {
+    const dedicated = dedicatedProfileDir("chrome", accountKey);
+    console.warn(
+      `[CDP] Ignoring ${isFirefoxProfilePath(requested) ? "Firefox profile" : "Windows"} path; Chrome is the default: ${requested}`
+    );
+    console.warn(`[CDP] Using dedicated directory instead: ${dedicated}`);
+    return dedicated;
+  }
 
   requested = path.resolve(requested);
   if (isForbiddenSystemChromeUserDataDir(requested)) {
@@ -998,7 +1033,7 @@ async function launchStealthPersistent(chromium, startUrl, launchOpts = {}) {
       console.warn(`Persistent launch failed (${channel || "chromium"}): ${error.message}`);
     }
   }
-  throw new Error("無法啟動可用的瀏覽器進行 Google 登入。");
+  throw new Error("無法啟動可用的瀏覽器進行登入。");
 }
 
 /**
@@ -1026,7 +1061,7 @@ async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
     executable = requestedExe;
   } else if (requestedExe && isStockMozillaFirefoxPath(requestedExe)) {
     console.warn(
-      `[Firefox] Ignoring stock Mozilla path (incompatible with Playwright):\n  ${requestedExe}`
+      `[Firefox] Ignoring non-Playwright executable (Chrome/Edge or stock Firefox):\n  ${requestedExe}`
     );
     console.warn(
       "[Firefox] Using Playwright bundled Firefox instead. Leave executable empty in the app."
@@ -1109,7 +1144,7 @@ async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
 
     if (!navigated) {
       console.warn(
-        "[Firefox] Could not confirm mindvideo.ai URL yet; will retry in openGoogleLogin."
+        "[Firefox] Could not confirm mindvideo.ai URL yet; will retry in openSignInPage."
       );
     }
 
@@ -1118,7 +1153,7 @@ async function launchFirefoxPersistent(playwright, startUrl, launchOpts = {}) {
       await setPageBanner(
         page,
         navigated
-          ? "此帳號為 Google 帳號：請用「Login with Google / 使用 Google 登入」。登入成功後維持 ≥5 秒會擷取 Token。"
+          ? signInBanner("firefox")
           : "正在開啟 MindVideo 登入頁…若沒有自動跳轉，請手動前往 https://www.mindvideo.ai/auth/signin/",
         "waiting"
       );
@@ -1261,11 +1296,20 @@ async function closeBrowserSession(session) {
   }
 }
 
+/** Banner for email, Google, or Discord sign-in. Accounts are not all Google. */
+function signInBanner(browserKind) {
+  const windowNote =
+    browserKind === "firefox"
+      ? "此視窗為 Firefox（Playwright）。"
+      : "此視窗為本機 Chrome/Edge（非自動化 Chromium）。";
+  return `請用這個帳號自己的方式登入（電子郵件、Google 或 Discord 皆可）。${windowNote}登入成功後維持 ≥5 秒會擷取 Token。`;
+}
+
 /**
- * Navigate to MindVideo sign-in and click "Login with Google" when present.
- * User still completes the Google account picker / password themselves.
+ * Open the MindVideo sign-in page and leave the login method to the user.
+ * Do not click Google: some accounts use email/password or Discord.
  */
-async function openGoogleLogin(page, startUrl) {
+async function openSignInPage(page, startUrl, banner) {
   const signInUrls = [
     startUrl,
     "https://www.mindvideo.ai/auth/signin/",
@@ -1279,74 +1323,16 @@ async function openGoogleLogin(page, startUrl) {
     } catch {
       continue;
     }
-
-    await setPageBanner(
-      page,
-      "此帳號為 Google 帳號：請使用「Login with Google / 使用 Google 登入」。正在嘗試自動開啟…",
-      "waiting"
-    );
-
-    // Give the SPA a moment to render OAuth buttons.
-    await sleep(1500);
-
-    const clicked = await page.evaluate(() => {
-      const isVisible = (el) => {
-        if (!el) return false;
-        const style = window.getComputedStyle(el);
-        const rect = el.getBoundingClientRect();
-        return (
-          style.visibility !== "hidden" &&
-          style.display !== "none" &&
-          rect.width > 0 &&
-          rect.height > 0
-        );
-      };
-
-      const looksLikeGoogle = (text) =>
-        /google|使用\s*google|用\s*google|login\s*with\s*google|continue\s*with\s*google|sign\s*in\s*with\s*google/i.test(
-          text || ""
-        );
-
-      const candidates = [
-        ...document.querySelectorAll(
-          'a, button, [role="button"], div[class*="google" i], span[class*="google" i]'
-        ),
-      ];
-
-      for (const el of candidates) {
-        const text = `${el.innerText || el.textContent || ""} ${el.getAttribute("aria-label") || ""} ${el.getAttribute("href") || ""}`;
-        if (!looksLikeGoogle(text)) continue;
-        if (!isVisible(el)) continue;
-        el.click();
-        return true;
-      }
-
-      // Fallback: any link pointing at Google OAuth.
-      for (const a of document.querySelectorAll("a[href]")) {
-        const href = a.getAttribute("href") || "";
-        if (/accounts\.google\.com|google.*oauth|\/auth\/.*google|provider=google/i.test(href) && isVisible(a)) {
-          a.click();
-          return true;
-        }
-      }
-      return false;
-    });
-
-    if (clicked) {
-      console.log("Clicked MindVideo「Login with Google」.");
-      await setPageBanner(
-        page,
-        "已開啟 Google 登入。請選擇對應的 Google 帳號完成授權；登入成功後會自動擷取 Token。",
-        "waiting"
-      );
+    if (/mindvideo\.ai/i.test(page.url())) {
+      await setPageBanner(page, banner, "waiting");
       return;
     }
   }
 
-  console.log("Could not auto-click Google login; please click「Login with Google」manually.");
+  console.log("Could not open MindVideo sign-in automatically.");
   await setPageBanner(
     page,
-    "此帳號為 Google 帳號：請手動點「Login with Google / 使用 Google 登入」完成登入。",
+    "請手動前往 https://www.mindvideo.ai/auth/signin/ ，用這個帳號自己的方式登入。登入成功後維持 ≥5 秒會擷取 Token。",
     "waiting"
   );
 }
@@ -1386,7 +1372,7 @@ async function main() {
     );
   } else {
     console.log(
-      `[${secretName}] Opening isolated Chrome/Edge for Google login (no browser profile mapping).`
+      `[${secretName}] Opening isolated Chrome/Edge for sign-in (no browser profile mapping).`
     );
   }
 
@@ -1420,10 +1406,7 @@ async function main() {
       });
     });
 
-    const waitingBanner =
-      browserKind === "firefox"
-        ? "此帳號為 Google 帳號：請用「Login with Google」登入。此視窗為 Firefox（Playwright）。登入成功後維持 ≥5 秒會擷取 Token。"
-        : "此帳號為 Google 帳號：請用「Login with Google」登入。此視窗為本機 Chrome/Edge（非自動化 Chromium）。登入成功後維持 ≥5 秒會擷取 Token。";
+    const waitingBanner = signInBanner(browserKind);
 
     page.on("framenavigated", async (frame) => {
       if (frame === page.mainFrame()) {
@@ -1434,7 +1417,7 @@ async function main() {
       }
     });
 
-    await openGoogleLogin(page, options.url || DEFAULT_URL);
+    await openSignInPage(page, options.url || DEFAULT_URL, waitingBanner);
 
     const deadline = Date.now() + options.timeoutMs;
     let lastStatus = "";

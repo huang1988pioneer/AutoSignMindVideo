@@ -68,7 +68,7 @@ public sealed class ChromeProfileStore
     public static ChromeProfileConfig CreateDefault(int accountNumber = 1) => new()
     {
         Browser = BrowserChrome,
-        ExecutablePath = DefaultExecutablePath,
+        ExecutablePath = CurrentPlatformChromeExecutable(),
         ProfileDirectory = DefaultProfileDirectory,
         UserDataDir = DefaultCdpUserDataDir(accountNumber)
     };
@@ -96,15 +96,81 @@ public sealed class ChromeProfileStore
         return BrowserChrome;
     }
 
+    /// <summary>
+    /// Chrome/Edge path for this operating system. Windows keeps the Program Files default.
+    /// macOS and Linux prefer an installed app and never return a <c>C:\</c> path.
+    /// </summary>
+    public static string CurrentPlatformChromeExecutable()
+    {
+        if (OperatingSystem.IsWindows())
+            return DefaultExecutablePath;
+
+        if (OperatingSystem.IsMacOS())
+        {
+            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var candidates = new[]
+            {
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                Path.Combine(home, "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                Path.Combine(home, "Applications", "Microsoft Edge.app", "Contents", "MacOS", "Microsoft Edge"),
+                "/Applications/Chromium.app/Contents/MacOS/Chromium"
+            };
+            return candidates.FirstOrDefault(File.Exists)
+                ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+        }
+
+        var linux = new[]
+        {
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium-browser",
+            "/usr/bin/chromium",
+            "/usr/bin/microsoft-edge"
+        };
+        return linux.FirstOrDefault(File.Exists) ?? "google-chrome";
+    }
+
+    /// <summary>True for <c>C:\...</c> and for a Unix cwd joined in front of one.</summary>
+    public static bool IsWindowsAbsolutePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var value = path.Trim().Trim('"');
+        for (var i = 0; i + 2 < value.Length; i++)
+        {
+            if (!char.IsAsciiLetter(value[i]) || value[i + 1] != ':') continue;
+            if (value[i + 2] is not ('\\' or '/')) continue;
+            if (i == 0 || value[i - 1] is '\\' or '/') return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Windows paths stored in shared config are not usable on macOS or Linux.</summary>
+    public static bool IsForeignWindowsPath(string? path) =>
+        !OperatingSystem.IsWindows() && IsWindowsAbsolutePath(path);
+
+    /// <summary>Dedicated Playwright Firefox folders are not Chrome CDP profiles.</summary>
+    public static bool IsFirefoxProfilePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        var value = path.Replace('\\', '/');
+        return value.Contains("/firefox-profiles/", StringComparison.OrdinalIgnoreCase)
+            || value.Contains("/firefox-account-", StringComparison.OrdinalIgnoreCase);
+    }
+
     public static string? FindFirefoxExecutable()
     {
         var candidates = new[]
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Mozilla Firefox", "firefox.exe"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Mozilla Firefox", "firefox.exe"),
-            DefaultFirefoxExecutablePath
+            DefaultFirefoxExecutablePath,
+            "/Applications/Firefox.app/Contents/MacOS/firefox",
+            "/usr/bin/firefox",
+            "/usr/bin/firefox-esr"
         };
-        return candidates.FirstOrDefault(File.Exists);
+        return candidates.FirstOrDefault(static path => !IsForeignWindowsPath(path) && File.Exists(path));
     }
 
     /// <summary>
@@ -123,9 +189,11 @@ public sealed class ChromeProfileStore
             return true;
 
         var file = Path.GetFileName(exe);
+        // Chrome / Edge must not be passed to Playwright Firefox. That launches Chrome
+        // against the profile folder and shows the folder instead of the sign-in window.
         if (!file.Equals("firefox.exe", StringComparison.OrdinalIgnoreCase) &&
             !file.Equals("firefox", StringComparison.OrdinalIgnoreCase))
-            return false;
+            return true;
 
         // Stock install locations / any non-playwright firefox.exe
         var lower = exe.Replace('/', '\\').ToLowerInvariant();
@@ -170,7 +238,7 @@ public sealed class ChromeProfileStore
 
     public static bool IsForbiddenSystemChromeUserDataDir(string? dir)
     {
-        if (string.IsNullOrWhiteSpace(dir)) return false;
+        if (string.IsNullOrWhiteSpace(dir) || IsForeignWindowsPath(dir)) return false;
         var normalized = Path.GetFullPath(dir.Trim().Trim('"')).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var system = Path.GetFullPath(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -185,7 +253,7 @@ public sealed class ChromeProfileStore
     /// <summary>True when path looks like a live Mozilla Firefox profiles tree (risk of lock/corruption).</summary>
     public static bool IsSystemFirefoxProfilesPath(string? dir)
     {
-        if (string.IsNullOrWhiteSpace(dir)) return false;
+        if (string.IsNullOrWhiteSpace(dir) || IsForeignWindowsPath(dir)) return false;
         var normalized = Path.GetFullPath(dir.Trim().Trim('"'));
         return normalized.Contains($"{Path.DirectorySeparatorChar}Mozilla{Path.DirectorySeparatorChar}Firefox{Path.DirectorySeparatorChar}Profiles", StringComparison.OrdinalIgnoreCase);
     }
@@ -286,7 +354,7 @@ public sealed class ChromeProfileStore
 
     public static string ResolveCdpUserDataDir(int accountNumber, string? requested)
     {
-        if (string.IsNullOrWhiteSpace(requested))
+        if (string.IsNullOrWhiteSpace(requested) || IsForeignWindowsPath(requested) || IsFirefoxProfilePath(requested))
             return DefaultCdpUserDataDir(accountNumber);
         var path = Path.GetFullPath(requested.Trim().Trim('"'));
         if (IsForbiddenSystemChromeUserDataDir(path))
@@ -296,7 +364,7 @@ public sealed class ChromeProfileStore
 
     public static string ResolveFirefoxProfileDir(int accountNumber, string? requested)
     {
-        if (string.IsNullOrWhiteSpace(requested))
+        if (string.IsNullOrWhiteSpace(requested) || IsForeignWindowsPath(requested))
             return DefaultFirefoxProfileDir(accountNumber);
         return ResolveExistingFirefoxProfile(requested);
     }
@@ -423,13 +491,18 @@ public sealed class ChromeProfileStore
             var raw = string.IsNullOrWhiteSpace(config.ExecutablePath)
                 ? string.Empty
                 : config.ExecutablePath.Trim().Trim('"');
+            // Shared config often still contains a Windows chrome.exe path.
+            if (IsForeignWindowsPath(raw)) raw = string.Empty;
             exe = ResolveFirefoxExecutableForLaunch(raw);
         }
         else
         {
-            exe = string.IsNullOrWhiteSpace(config.ExecutablePath)
-                ? DefaultExecutablePath
+            var rawExe = string.IsNullOrWhiteSpace(config.ExecutablePath)
+                ? string.Empty
                 : config.ExecutablePath.Trim().Trim('"');
+            exe = string.IsNullOrWhiteSpace(rawExe) || IsForeignWindowsPath(rawExe)
+                ? CurrentPlatformChromeExecutable()
+                : rawExe;
         }
 
         browser = NormalizeBrowser(browser, exe);
@@ -447,13 +520,22 @@ public sealed class ChromeProfileStore
             userData = ResolveCdpUserDataDir(accountNumber, userData);
         }
 
+        var profileDirectory = string.IsNullOrWhiteSpace(config.ProfileDirectory)
+            ? null
+            : config.ProfileDirectory.Trim().Trim('"');
+        if (browser != BrowserFirefox &&
+            string.Equals(profileDirectory, BrowserFirefox, StringComparison.OrdinalIgnoreCase))
+        {
+            profileDirectory = DefaultProfileDirectory;
+        }
+
         return new ChromeProfileConfig
         {
             Browser = browser,
             ExecutablePath = exe,
-            ProfileDirectory = string.IsNullOrWhiteSpace(config.ProfileDirectory)
+            ProfileDirectory = string.IsNullOrWhiteSpace(profileDirectory)
                 ? (browser == BrowserFirefox ? "firefox" : DefaultProfileDirectory)
-                : config.ProfileDirectory.Trim().Trim('"'),
+                : profileDirectory,
             UserDataDir = userData
         };
     }

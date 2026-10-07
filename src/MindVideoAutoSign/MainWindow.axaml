@@ -211,7 +211,7 @@
               <TextBox x:Name="TokenBox" PasswordChar="•" Watermark="貼上或由瀏覽器擷取後會顯示在這裡" />
 
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <Button x:Name="StartLoginButton" Classes="primary" Click="StartLoginButton_OnClick">Google 登入並擷取 Token</Button>
+                <Button x:Name="StartLoginButton" Classes="primary" Click="StartLoginButton_OnClick">登入並擷取 Token</Button>
                 <Button x:Name="CopyTokenButton" IsEnabled="False" Click="CopyTokenButton_OnClick">複製 Token</Button>
                 <Button x:Name="CopySecretButton" Click="CopySecretButton_OnClick">複製 Secret 名稱</Button>
               </StackPanel>

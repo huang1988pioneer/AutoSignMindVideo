@@ -245,15 +245,17 @@ public partial class MainWindow : Window
         if (ChromeExeBox is not null)
             ChromeExeBox.Watermark = firefox
                 ? "留空 = 使用 Playwright 內建 Firefox（請勿填系統 firefox.exe）"
-                : @"C:\Program Files\Google\Chrome\Application\chrome.exe";
+                : ChromeProfileStore.CurrentPlatformChromeExecutable();
         if (ChromeExeLabel is not null)
             ChromeExeLabel.Text = firefox
                 ? "瀏覽器執行檔（Firefox 請留空；系統 firefox.exe 與 Playwright 不相容）"
-                : "瀏覽器執行檔（chrome.exe / msedge.exe）";
+                : OperatingSystem.IsWindows()
+                    ? "瀏覽器執行檔（chrome.exe / msedge.exe）"
+                    : "瀏覽器執行檔（Google Chrome / Microsoft Edge）";
         if (ChromeUserDataBox is not null)
             ChromeUserDataBox.Watermark = firefox
-                ? @"%LOCALAPPDATA%\MindVideo Auto Sign\firefox-profiles\account-01"
-                : @"%LOCALAPPDATA%\MindVideo Auto Sign\chrome-cdp\account-01";
+                ? ChromeProfileStore.DefaultFirefoxProfileDir(1)
+                : ChromeProfileStore.DefaultCdpUserDataDir(1);
         if (ChromeUserDataLabel is not null)
             ChromeUserDataLabel.Text = firefox
                 ? "Firefox profile 資料夾（建議獨立；可填系統 Profiles\\xxx，需先關閉 Firefox）"
@@ -296,7 +298,7 @@ public partial class MainWindow : Window
         var exe = string.IsNullOrWhiteSpace(ChromeExeBox.Text)
             ? (browser == ChromeProfileStore.BrowserFirefox
                 ? string.Empty
-                : ChromeProfileStore.DefaultExecutablePath)
+                : ChromeProfileStore.CurrentPlatformChromeExecutable())
             : ChromeExeBox.Text.Trim().Trim('"');
 
         // Infer browser from executable if user typed firefox path while combo is chrome.
@@ -536,13 +538,13 @@ public partial class MainWindow : Window
                 ChromeProfileStore.PrepareFirefoxProfileOrThrow(profileDir);
                 LoginStatus.Text =
                     "將啟動 Playwright Firefox 並跳轉 https://www.mindvideo.ai/auth/signin/；" +
-                    "頁面頂部會有登入提示橫幅。請用「Login with Google」登入，維持 ≥5 秒後擷取 Token。 " +
+                    "頁面頂部會有登入提示橫幅。請用這個帳號自己的方式登入（電子郵件、Google 或 Discord），維持 ≥5 秒後擷取 Token。 " +
                     ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber);
             }
             else
             {
                 LoginStatus.Text =
-                    $"將啟動：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。首次請 Google 登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
+                    $"將啟動：{ChromeProfileStore.FormatCommandPreview(chrome, AccountNumber)}。請用這個帳號自己的方式登入；維持 ≥5 秒後擷取 Token → {Path.GetFileName(tokenFile)}。";
             }
 
             var captureArgs = new List<string>
