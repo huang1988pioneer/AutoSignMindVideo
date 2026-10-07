@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MindVideoAutoSign.MainWindow"
-        Title="MindVideo Flow v1.0.4"
+        Title="MindVideo Flow v1.0.5"
         Width="1000" Height="860"
         MinWidth="1000" MinHeight="860"
         Background="#F4F7FB">
@@ -44,7 +44,7 @@
       <StackPanel Spacing="20">
         <StackPanel Spacing="6">
           <TextBlock Text="MindVideo Flow" FontSize="24" FontWeight="Bold" Foreground="White" />
-          <TextBlock Text="v1.0.4" FontSize="12" Foreground="#A9D2D0" Margin="0,-4,0,0" />
+          <TextBlock Text="v1.0.5" FontSize="12" Foreground="#A9D2D0" Margin="0,-4,0,0" />
           <TextBlock Text="自動簽到控制台" Foreground="#A9CCE8" />
           <TextBlock Text="管理 Token、GitHub Actions 與每日簽到結果。"
                      TextWrapping="Wrap" FontSize="12" Foreground="#8FB9DB" Margin="0,8,0,0" />
