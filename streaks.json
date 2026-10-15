@@ -1,29 +1,29 @@
 {
-  "generatedAt": "2026-10-15T04:26:05.194Z",
-  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/38681264194",
+  "generatedAt": "2026-10-15T08:13:44.272Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/38703891890",
   "title": "MindVideo continuous check-in days",
   "accounts": [
     {
       "account": 1,
       "name": "MINDVIDEO_TOKEN1",
       "label": "feng33feng35feng3",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 320,
-      "remainingCredits": 137,
-      "usedCredits": 183,
+      "remainingCredits": 135,
+      "usedCredits": 185,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:24:25.240Z"
+      "finishedAt": "2026-10-15T08:11:56.463Z"
     },
     {
       "account": 2,
       "name": "MINDVIDEO_TOKEN2",
       "label": "huang1988pioneer",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 248,
       "remainingCredits": 3,
@@ -33,13 +33,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:24:32.348Z"
+      "finishedAt": "2026-10-15T08:12:01.441Z"
     },
     {
       "account": 3,
       "name": "MINDVIDEO_TOKEN3",
       "label": "chbondg_outloook",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 264,
       "remainingCredits": 120,
@@ -49,13 +49,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:24:44.536Z"
+      "finishedAt": "2026-10-15T08:12:10.108Z"
     },
     {
       "account": 4,
       "name": "MINDVIDEO_TOKEN4",
       "label": "gaokaolevel3iptopscorer_outlook",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 310,
       "remainingCredits": 82,
@@ -65,13 +65,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:25:03.528Z"
+      "finishedAt": "2026-10-15T08:12:24.388Z"
     },
     {
       "account": 5,
       "name": "MINDVIDEO_TOKEN5",
       "label": "huang1988pioneer_outlook",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 164,
       "remainingCredits": 22,
@@ -81,13 +81,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:25:08.151Z"
+      "finishedAt": "2026-10-15T08:12:32.484Z"
     },
     {
       "account": 6,
       "name": "MINDVIDEO_TOKEN6",
       "label": "fengtuta_tuta",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 228,
       "remainingCredits": 114,
@@ -97,13 +97,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:25:23.246Z"
+      "finishedAt": "2026-10-15T08:12:34.706Z"
     },
     {
       "account": 7,
       "name": "MINDVIDEO_TOKEN7",
       "label": "fengfence_fence",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 2,
       "totalCredits": 228,
       "remainingCredits": 117,
@@ -113,13 +113,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-15T04:25:27.095Z"
+      "finishedAt": "2026-10-15T08:12:42.607Z"
     },
     {
       "account": 30,
       "name": "MINDVIDEO_TOKEN30",
       "label": "goldshoot0720",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 6,
       "totalCredits": 440,
       "remainingCredits": 93,
@@ -129,13 +129,13 @@
         "used": 7,
         "total": 100
       },
-      "finishedAt": "2026-10-15T04:25:35.287Z"
+      "finishedAt": "2026-10-15T08:13:14.236Z"
     },
     {
       "account": 31,
       "name": "MINDVIDEO_TOKEN31",
       "label": "abuhg17",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 6,
       "totalCredits": 324,
       "remainingCredits": 98,
@@ -145,13 +145,13 @@
         "used": 2,
         "total": 100
       },
-      "finishedAt": "2026-10-15T04:25:45.268Z"
+      "finishedAt": "2026-10-15T08:13:17.225Z"
     },
     {
       "account": 32,
       "name": "MINDVIDEO_TOKEN32",
       "label": "chbondg2",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 6,
       "totalCredits": 292,
       "remainingCredits": 95,
@@ -161,7 +161,7 @@
         "used": 5,
         "total": 100
       },
-      "finishedAt": "2026-10-15T04:25:55.384Z"
+      "finishedAt": "2026-10-15T08:13:28.740Z"
     },
     {
       "account": 33,
@@ -173,7 +173,7 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-10-15T04:24:25.370Z"
+      "finishedAt": "2026-10-15T08:11:38.432Z"
     }
   ],
   "summary": {
