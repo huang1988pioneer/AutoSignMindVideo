@@ -1,167 +1,167 @@
 {
-  "generatedAt": "2026-10-20T23:50:12.521Z",
-  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/39517308531",
+  "generatedAt": "2026-10-21T04:31:59.220Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/39544369853",
   "title": "MindVideo continuous check-in days",
   "accounts": [
     {
       "account": 1,
       "name": "MINDVIDEO_TOKEN1",
       "label": "feng33feng35feng3",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 330,
-      "remainingCredits": 135,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 332,
+      "remainingCredits": 137,
       "usedCredits": 195,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:48:16.445Z"
+      "finishedAt": "2026-10-21T04:30:21.616Z"
     },
     {
       "account": 2,
       "name": "MINDVIDEO_TOKEN2",
       "label": "huang1988pioneer",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 258,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 260,
       "remainingCredits": 3,
-      "usedCredits": 255,
+      "usedCredits": 257,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:48:15.309Z"
+      "finishedAt": "2026-10-21T04:30:33.027Z"
     },
     {
       "account": 3,
       "name": "MINDVIDEO_TOKEN3",
       "label": "chbondg_outloook",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 274,
-      "remainingCredits": 130,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 276,
+      "remainingCredits": 132,
       "usedCredits": 144,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:48:38.629Z"
+      "finishedAt": "2026-10-21T04:30:49.487Z"
     },
     {
       "account": 4,
       "name": "MINDVIDEO_TOKEN4",
       "label": "gaokaolevel3iptopscorer_outlook",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 320,
-      "remainingCredits": 92,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 322,
+      "remainingCredits": 94,
       "usedCredits": 228,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:48:38.264Z"
+      "finishedAt": "2026-10-21T04:31:06.014Z"
     },
     {
       "account": 5,
       "name": "MINDVIDEO_TOKEN5",
       "label": "huang1988pioneer_outlook",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 174,
-      "remainingCredits": 32,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 176,
+      "remainingCredits": 34,
       "usedCredits": 142,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:48:43.012Z"
+      "finishedAt": "2026-10-21T04:31:12.643Z"
     },
     {
       "account": 6,
       "name": "MINDVIDEO_TOKEN6",
       "label": "fengtuta_tuta",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 238,
-      "remainingCredits": 124,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 240,
+      "remainingCredits": 126,
       "usedCredits": 114,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:48:52.415Z"
+      "finishedAt": "2026-10-21T04:31:20.633Z"
     },
     {
       "account": 7,
       "name": "MINDVIDEO_TOKEN7",
       "label": "fengfence_fence",
-      "status": "already_done",
-      "streak": 7,
-      "totalCredits": 238,
-      "remainingCredits": 127,
+      "status": "checked_in",
+      "streak": 1,
+      "totalCredits": 240,
+      "remainingCredits": 129,
       "usedCredits": 111,
       "gptImage2": {
         "remaining": 0,
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-10-20T23:49:03.424Z"
+      "finishedAt": "2026-10-21T04:31:29.373Z"
     },
     {
       "account": 30,
       "name": "MINDVIDEO_TOKEN30",
       "label": "goldshoot0720",
-      "status": "already_done",
-      "streak": 4,
-      "totalCredits": 450,
+      "status": "checked_in",
+      "streak": 5,
+      "totalCredits": 452,
       "remainingCredits": 93,
-      "usedCredits": 357,
+      "usedCredits": 359,
       "gptImage2": {
         "remaining": 93,
         "used": 7,
         "total": 100
       },
-      "finishedAt": "2026-10-20T23:49:42.043Z"
+      "finishedAt": "2026-10-21T04:31:35.247Z"
     },
     {
       "account": 31,
       "name": "MINDVIDEO_TOKEN31",
       "label": "abuhg17",
-      "status": "already_done",
-      "streak": 4,
-      "totalCredits": 334,
+      "status": "checked_in",
+      "streak": 5,
+      "totalCredits": 336,
       "remainingCredits": 98,
-      "usedCredits": 236,
+      "usedCredits": 238,
       "gptImage2": {
         "remaining": 98,
         "used": 2,
         "total": 100
       },
-      "finishedAt": "2026-10-20T23:49:35.129Z"
+      "finishedAt": "2026-10-21T04:31:42.628Z"
     },
     {
       "account": 32,
       "name": "MINDVIDEO_TOKEN32",
       "label": "chbondg2",
-      "status": "already_done",
-      "streak": 4,
-      "totalCredits": 302,
+      "status": "checked_in",
+      "streak": 5,
+      "totalCredits": 304,
       "remainingCredits": 95,
-      "usedCredits": 207,
+      "usedCredits": 209,
       "gptImage2": {
         "remaining": 95,
         "used": 5,
         "total": 100
       },
-      "finishedAt": "2026-10-20T23:49:43.415Z"
+      "finishedAt": "2026-10-21T04:31:49.407Z"
     },
     {
       "account": 33,
@@ -173,13 +173,13 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-10-20T23:47:58.735Z"
+      "finishedAt": "2026-10-21T04:30:17.204Z"
     }
   ],
   "summary": {
     "recorded": 11,
-    "max": 7,
+    "max": 5,
     "min": 0,
-    "average": 5.5
+    "average": 2
   }
 }
