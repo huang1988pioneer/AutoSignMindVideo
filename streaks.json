@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-03T06:32:11.289Z",
-  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/41590304580",
+  "generatedAt": "2026-11-03T10:45:27.882Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/41621636818",
   "title": "MindVideo continuous check-in days",
   "accounts": [
     {
@@ -17,7 +17,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-03T06:30:45.904Z"
+      "finishedAt": "2026-11-03T10:43:50.808Z"
     },
     {
       "account": 2,
@@ -33,19 +33,23 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-03T06:30:51.742Z"
+      "finishedAt": "2026-11-03T10:43:54.702Z"
     },
     {
       "account": 3,
       "name": "MINDVIDEO_TOKEN3",
       "label": "chbondg_outloook",
-      "status": "failed",
-      "streak": null,
-      "totalCredits": null,
-      "remainingCredits": null,
-      "usedCredits": null,
-      "gptImage2": null,
-      "finishedAt": "2026-11-03T06:30:59.891Z"
+      "status": "already_done",
+      "streak": 7,
+      "totalCredits": 302,
+      "remainingCredits": 142,
+      "usedCredits": 160,
+      "gptImage2": {
+        "remaining": 0,
+        "used": 0,
+        "total": 0
+      },
+      "finishedAt": "2026-11-03T10:44:05.173Z"
     },
     {
       "account": 4,
@@ -61,7 +65,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-03T06:31:04.399Z"
+      "finishedAt": "2026-11-03T10:44:15.834Z"
     },
     {
       "account": 5,
@@ -77,7 +81,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-03T06:31:10.955Z"
+      "finishedAt": "2026-11-03T10:44:25.184Z"
     },
     {
       "account": 6,
@@ -93,7 +97,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-03T06:31:21.803Z"
+      "finishedAt": "2026-11-03T10:44:38.186Z"
     },
     {
       "account": 7,
@@ -109,7 +113,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-03T06:31:34.231Z"
+      "finishedAt": "2026-11-03T10:44:45.109Z"
     },
     {
       "account": 30,
@@ -125,7 +129,7 @@
         "used": 9,
         "total": 100
       },
-      "finishedAt": "2026-11-03T06:31:36.932Z"
+      "finishedAt": "2026-11-03T10:44:52.495Z"
     },
     {
       "account": 31,
@@ -141,7 +145,7 @@
         "used": 2,
         "total": 100
       },
-      "finishedAt": "2026-11-03T06:31:47.788Z"
+      "finishedAt": "2026-11-03T10:45:02.154Z"
     },
     {
       "account": 32,
@@ -157,7 +161,7 @@
         "used": 5,
         "total": 100
       },
-      "finishedAt": "2026-11-03T06:32:01.385Z"
+      "finishedAt": "2026-11-03T10:45:16.388Z"
     },
     {
       "account": 33,
@@ -169,13 +173,13 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-11-03T06:30:40.492Z"
+      "finishedAt": "2026-11-03T10:43:46.705Z"
     }
   ],
   "summary": {
     "recorded": 11,
     "max": 7,
     "min": 0,
-    "average": 4.9
+    "average": 5.5
   }
 }
