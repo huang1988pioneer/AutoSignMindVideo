@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-11-06T01:31:30.344Z",
-  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/42144149668",
+  "generatedAt": "2026-11-06T06:24:56.598Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/42174027459",
   "title": "MindVideo continuous check-in days",
   "accounts": [
     {
       "account": 1,
       "name": "MINDVIDEO_TOKEN1",
       "label": "feng33feng35feng3",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 364,
       "remainingCredits": 141,
@@ -17,13 +17,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:29:32.252Z"
+      "finishedAt": "2026-11-06T06:22:53.621Z"
     },
     {
       "account": 2,
       "name": "MINDVIDEO_TOKEN2",
       "label": "huang1988pioneer",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 292,
       "remainingCredits": 3,
@@ -33,13 +33,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:29:46.563Z"
+      "finishedAt": "2026-11-06T06:23:07.530Z"
     },
     {
       "account": 3,
       "name": "MINDVIDEO_TOKEN3",
       "label": "chbondg_outloook",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 308,
       "remainingCredits": 140,
@@ -49,13 +49,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:30:04.881Z"
+      "finishedAt": "2026-11-06T06:23:22.428Z"
     },
     {
       "account": 4,
       "name": "MINDVIDEO_TOKEN4",
       "label": "gaokaolevel3iptopscorer_outlook",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 354,
       "remainingCredits": 120,
@@ -65,13 +65,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:30:53.183Z"
+      "finishedAt": "2026-11-06T06:23:33.517Z"
     },
     {
       "account": 5,
       "name": "MINDVIDEO_TOKEN5",
       "label": "huang1988pioneer_outlook",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 208,
       "remainingCredits": 60,
@@ -81,13 +81,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:30:18.534Z"
+      "finishedAt": "2026-11-06T06:23:45.813Z"
     },
     {
       "account": 6,
       "name": "MINDVIDEO_TOKEN6",
       "label": "fengtuta_tuta",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 272,
       "remainingCredits": 134,
@@ -97,13 +97,13 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:30:34.938Z"
+      "finishedAt": "2026-11-06T06:24:00.159Z"
     },
     {
       "account": 7,
       "name": "MINDVIDEO_TOKEN7",
       "label": "fengfence_fence",
-      "status": "checked_in",
+      "status": "already_done",
       "streak": 3,
       "totalCredits": 272,
       "remainingCredits": 134,
@@ -113,7 +113,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-06T01:30:38.599Z"
+      "finishedAt": "2026-11-06T06:24:13.069Z"
     },
     {
       "account": 30,
@@ -125,7 +125,7 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-11-06T01:30:59.734Z"
+      "finishedAt": "2026-11-06T06:24:21.960Z"
     },
     {
       "account": 31,
@@ -137,7 +137,7 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-11-06T01:31:21.553Z"
+      "finishedAt": "2026-11-06T06:24:32.554Z"
     },
     {
       "account": 32,
@@ -149,7 +149,7 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-11-06T01:31:14.721Z"
+      "finishedAt": "2026-11-06T06:24:46.027Z"
     },
     {
       "account": 33,
@@ -161,7 +161,7 @@
       "remainingCredits": null,
       "usedCredits": null,
       "gptImage2": null,
-      "finishedAt": "2026-11-06T01:29:30.992Z"
+      "finishedAt": "2026-11-06T06:22:50.023Z"
     }
   ],
   "summary": {
