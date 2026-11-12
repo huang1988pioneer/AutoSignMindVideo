@@ -79,7 +79,7 @@ function printHelp() {
 Usage:
   npm run capture:tokens
   npm run capture:tokens -- --accounts 1,2,3
-  npm run capture:tokens -- --start 21 --end 33 --update-secrets
+  npm run capture:tokens -- --start 1 --end 7 --update-secrets
 
 Options:
   --accounts 1,2       Capture only listed token numbers.

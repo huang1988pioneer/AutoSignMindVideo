@@ -38,7 +38,7 @@ jobs:
 
   checkin:
     needs: define-matrix
-    # Job names use the labels from accounts.json, e.g. checkin-1-goldshoot0720.
+    # Job names use the labels from accounts.json, e.g. checkin-1-feng33feng35feng3.
     name: checkin-${{ matrix.account }}-${{ matrix.label }}
     if: github.event_name == 'workflow_dispatch' || github.event.schedule == '9 21 * * *' || github.event.schedule == '9 0 * * *' || github.event.schedule == '9 3 * * *' || github.event.schedule == '9 5 * * *' || github.event.schedule == '9 13 * * *'
     runs-on: ubuntu-latest

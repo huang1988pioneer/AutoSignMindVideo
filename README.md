@@ -88,7 +88,7 @@ npm run capture:tokens -- --accounts 1,2,3
 For a range of accounts:
 
 ```sh
-npm run capture:tokens -- --start 1 --end 11
+npm run capture:tokens -- --start 1 --end 7
 ```
 
 The helper opens and closes a fresh Playwright browser for each account. Log in
@@ -100,7 +100,7 @@ To write captured tokens directly to GitHub Actions secrets, make sure `gh` is
 authenticated and run:
 
 ```sh
-npm run capture:tokens -- --start 1 --end 11 --update-secrets
+npm run capture:tokens -- --start 1 --end 7 --update-secrets
 ```
 
 ## Daily macOS Schedule
@@ -118,14 +118,13 @@ The included schedule runs every day at 09:05.
 
 The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
-account (currently 11) on each schedule (Asia/Taipei windows):
+account (currently 7: slots 1–7) on each schedule (Asia/Taipei windows):
 
 - enabled `MINDVIDEO_TOKEN*` slots every day at **05:09、08:09、11:09、13:09、21:09**.
 
-Slots `30`, `31`, and `32` are assigned to `goldshoot0720`, `abuhg17`, and
-`chbondg2`, respectively. Slot `33` remains an empty placeholder
-(`account-33`). Missing Secrets are reported as skipped, so slots do not run
-until their corresponding tokens are added.
+Slots 8–33, including the former `checkin-30` through `checkin-33` jobs, are
+disabled. Missing Secrets are reported as skipped, so slots do not run until
+their corresponding tokens are added.
 
 All scheduled starts use the ninth minute of the hour to avoid starting on the
 hour. GitHub Actions uses UTC cron values `9 21 * * *`, `9 0 * * *`,

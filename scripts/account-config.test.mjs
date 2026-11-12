@@ -6,15 +6,15 @@ import {
   normalizeAccountConfig,
 } from "./account-config.mjs";
 
-test("repository account catalog uses renumbered active slots and keeps remaining placeholders", () => {
+test("repository account catalog keeps slots 1-7 and disables slots 8-33", () => {
   const config = loadAccountConfig();
   assert.equal(config.slotCount, 33);
-  assert.equal(config.accounts.length, 11);
+  assert.equal(config.accounts.length, 7);
   assert.deepEqual(
     config.accounts.map((account) => account.number),
-    [1, 2, 3, 4, 5, 6, 7, ...Array.from({ length: 4 }, (_, index) => index + 30)],
+    [1, 2, 3, 4, 5, 6, 7],
   );
-  for (const removed of [8, 9, 10, 11, 12, 13, ...Array.from({ length: 16 }, (_, index) => index + 14)]) {
+  for (const removed of [8, 9, 10, 11, 12, 13, ...Array.from({ length: 20 }, (_, index) => index + 14)]) {
     assert.equal(config.accounts.some((account) => account.number === removed), false);
   }
   assert.deepEqual(
@@ -29,10 +29,7 @@ test("repository account catalog uses renumbered active slots and keeps remainin
       [7, "fengfence_fence"],
     ],
   );
-  assert.deepEqual(
-    config.accounts.slice(7).map((account) => [account.number, account.label]),
-    [[30, "goldshoot0720"], [31, "abuhg17"], [32, "chbondg2"], [33, "account-33"]],
-  );
+  assert.deepEqual(config.accounts.slice(7), []);
   assert.equal(
     config.accounts.some((account) => /fengtuprinfo|fengwithfeng1127|tushenbyfengbro|samafengtu|fengtusama|fengwithting0831|fengwithtu1127|akaonda333|fbussinesseng|engdictatorf|flottojackpoteng|account-(?:1[4-9]|2[0-9])/i.test(account.label)),
     false,
@@ -41,10 +38,10 @@ test("repository account catalog uses renumbered active slots and keeps remainin
 
 test("workflow positions follow catalog order after removals", () => {
   const matrix = buildWorkflowMatrix(loadAccountConfig());
-  assert.equal(matrix.include.length, 11);
+  assert.equal(matrix.include.length, 7);
   assert.deepEqual(
-    matrix.include.slice(7).map((entry) => [entry.account, entry.position]),
-    [[30, 8], [31, 9], [32, 10], [33, 11]],
+    matrix.include.map((entry) => [entry.account, entry.position]),
+    [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7]],
   );
 });
 

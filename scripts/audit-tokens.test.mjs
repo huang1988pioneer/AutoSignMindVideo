@@ -11,13 +11,14 @@ test("token audit follows the active account catalog and ignores removed slots",
       MINDVIDEO_TOKEN6: "same-token",
       MINDVIDEO_TOKEN30: "placeholder-token",
       MINDVIDEO_TOKEN31: "placeholder-token",
+      MINDVIDEO_TOKEN32: "placeholder-token",
+      MINDVIDEO_TOKEN33: "placeholder-token",
       MINDVIDEO_TOKEN8: "same-token",
     },
     config,
   );
   assert.deepEqual(duplicates, [
     ["MINDVIDEO_TOKEN4", "MINDVIDEO_TOKEN6"],
-    ["MINDVIDEO_TOKEN30", "MINDVIDEO_TOKEN31"],
   ]);
 });
 
