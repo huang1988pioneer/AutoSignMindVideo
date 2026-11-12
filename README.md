@@ -112,7 +112,9 @@ chmod +x run-checkin.command install-macos-launch-agent.sh
 ./install-macos-launch-agent.sh
 ```
 
-The included schedule runs every day at 09:05.
+The included schedule runs every day at 09:05 through 2026-11-25. Automatic
+check-in stops on 2026-11-26 (Asia/Taipei). `npm run checkin` still runs when
+you start it yourself.
 
 ## GitHub Actions
 
@@ -120,7 +122,8 @@ The workflow in `.github/workflows/mindvideo-daily-checkin.yml` validates
 `accounts.json` and runs one isolated GitHub Actions matrix job per enabled
 account (currently 7: slots 1–7) on each schedule (Asia/Taipei windows):
 
-- enabled `MINDVIDEO_TOKEN*` slots every day at **05:09、08:09、11:09、13:09、21:09**.
+- enabled `MINDVIDEO_TOKEN*` slots every day at **05:09、08:09、11:09、13:09、21:09** through **2026-11-25**.
+- automatic runs stop on **2026-11-26** (Asia/Taipei). Manual `workflow_dispatch` still runs.
 
 Slots 8–33, including the former `checkin-30` through `checkin-33` jobs, are
 disabled. Missing Secrets are reported as skipped, so slots do not run until

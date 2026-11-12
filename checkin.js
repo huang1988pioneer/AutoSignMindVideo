@@ -7,6 +7,12 @@ import {
   isAccountEnabled,
   loadAccountConfig,
 } from "./scripts/account-config.mjs";
+import {
+  AUTOMATIC_CHECKIN_ENDS_ON,
+  isScheduledCheckin,
+  shouldCheckIn,
+  taipeiDate,
+} from "./scripts/schedule-window.mjs";
 
 const API_BASE = "https://api-app.mindvideo.ai";
 const APP_VERSION = "1.0.8";
@@ -809,6 +815,13 @@ function printSummary(results) {
 }
 
 async function main() {
+  if (isScheduledCheckin() && !shouldCheckIn()) {
+    console.log(
+      `Automatic check-in stopped on ${AUTOMATIC_CHECKIN_ENDS_ON} (Asia/Taipei ${taipeiDate()}).`
+    );
+    return;
+  }
+
   loadEnvFile(path.join(process.cwd(), ".env"));
 
   // Optional stagger for matrix jobs to reduce thundering-herd 429s.

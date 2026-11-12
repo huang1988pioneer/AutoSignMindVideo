@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { buildWorkflowMatrix, loadAccountConfig } from "./account-config.mjs";
+import { AUTOMATIC_CHECKIN_ENDS_ON } from "./schedule-window.mjs";
 
 const workflowPath = new URL(
   "../.github/workflows/mindvideo-daily-checkin.yml",
@@ -49,6 +50,13 @@ for (const cron of expectedCrons) {
   );
 }
 
+assert.equal(AUTOMATIC_CHECKIN_ENDS_ON, "2026-11-26");
+assert.match(workflow, /node scripts\/schedule-window\.mjs/);
+assert.equal(
+  (workflow.match(/needs\.schedule-window\.outputs\.active == 'true'/g) || []).length,
+  3,
+  "matrix, check-in, and summary must follow the automatic cutoff",
+);
 assert.match(workflow, /workflow_dispatch:/, "manual dispatch must remain available");
 assert.match(workflow, /define-matrix:/, "daily workflow must validate the account catalog first");
 assert.match(

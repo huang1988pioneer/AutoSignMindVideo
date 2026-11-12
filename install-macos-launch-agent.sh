@@ -22,6 +22,11 @@ cat > "$PLIST" <<PLIST
   </array>
   <key>WorkingDirectory</key>
   <string>$PROJECT_DIR</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MINDVIDEO_SCHEDULED</key>
+    <string>1</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
@@ -42,5 +47,6 @@ PLIST
 launchctl unload "$PLIST" >/dev/null 2>&1 || true
 launchctl load "$PLIST"
 
-echo "Installed daily MindVideo check-in at 09:05."
+echo "Installed daily MindVideo check-in at 09:05 through 2026-11-25."
+echo "Automatic check-in stops on 2026-11-26 (Asia/Taipei)."
 echo "Log files are in: $PROJECT_DIR/logs"
