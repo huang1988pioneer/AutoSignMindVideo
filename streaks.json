@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-17T11:43:11.405Z",
-  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/44076271909",
+  "generatedAt": "2026-11-17T14:17:57.511Z",
+  "runUrl": "https://github.com/huang1988pioneer/AutoSignMindVideo/actions/runs/44101251811",
   "title": "MindVideo continuous check-in days",
   "accounts": [
     {
@@ -17,7 +17,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:42:20.555Z"
+      "finishedAt": "2026-11-17T14:16:48.720Z"
     },
     {
       "account": 2,
@@ -33,7 +33,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:42:13.738Z"
+      "finishedAt": "2026-11-17T14:17:08.040Z"
     },
     {
       "account": 3,
@@ -49,7 +49,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:42:22.451Z"
+      "finishedAt": "2026-11-17T14:16:59.408Z"
     },
     {
       "account": 4,
@@ -65,7 +65,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:42:30.779Z"
+      "finishedAt": "2026-11-17T14:17:13.837Z"
     },
     {
       "account": 5,
@@ -81,7 +81,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:42:41.752Z"
+      "finishedAt": "2026-11-17T14:17:26.096Z"
     },
     {
       "account": 6,
@@ -97,7 +97,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:42:48.362Z"
+      "finishedAt": "2026-11-17T14:17:39.223Z"
     },
     {
       "account": 7,
@@ -113,7 +113,7 @@
         "used": 0,
         "total": 0
       },
-      "finishedAt": "2026-11-17T11:43:00.510Z"
+      "finishedAt": "2026-11-17T14:17:44.900Z"
     }
   ],
   "summary": {
