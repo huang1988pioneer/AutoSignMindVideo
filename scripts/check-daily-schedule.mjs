@@ -50,7 +50,7 @@ for (const cron of expectedCrons) {
   );
 }
 
-assert.equal(AUTOMATIC_CHECKIN_ENDS_ON, "2026-11-26");
+assert.equal(AUTOMATIC_CHECKIN_ENDS_ON, "2026-11-30");
 assert.match(workflow, /node scripts\/schedule-window\.mjs/);
 assert.equal(
   (workflow.match(/needs\.schedule-window\.outputs\.active == 'true'/g) || []).length,

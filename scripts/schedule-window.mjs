@@ -1,7 +1,7 @@
 import fs from "node:fs";
 
 /** First Asia/Taipei calendar day on which automatic check-in does not run. */
-export const AUTOMATIC_CHECKIN_ENDS_ON = "2026-11-26";
+export const AUTOMATIC_CHECKIN_ENDS_ON = "2026-11-30";
 
 export function taipeiDate(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {

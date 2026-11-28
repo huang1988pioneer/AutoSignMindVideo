@@ -14,18 +14,18 @@ import {
 
 const scriptPath = fileURLToPath(new URL("./schedule-window.mjs", import.meta.url));
 
-test("automatic check-in stays open through 2026-11-25 Taipei and stops on 2026-11-26", () => {
-  assert.equal(AUTOMATIC_CHECKIN_ENDS_ON, "2026-11-26");
-  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-25T13:09:00Z")), true);
-  assert.equal(taipeiDate(new Date("2026-11-25T13:09:00Z")), "2026-11-25");
-  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-25T15:59:00Z")), true);
-  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-25T16:00:00Z")), false);
-  assert.equal(taipeiDate(new Date("2026-11-25T16:00:00Z")), "2026-11-26");
-  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-25T21:09:00Z")), false);
+test("automatic check-in stays open through 2026-11-29 Taipei and stops on 2026-11-30", () => {
+  assert.equal(AUTOMATIC_CHECKIN_ENDS_ON, "2026-11-30");
+  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-29T13:09:00Z")), true);
+  assert.equal(taipeiDate(new Date("2026-11-29T13:09:00Z")), "2026-11-29");
+  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-29T15:59:59.999Z")), true);
+  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-29T16:00:00Z")), false);
+  assert.equal(taipeiDate(new Date("2026-11-29T16:00:00Z")), "2026-11-30");
+  assert.equal(isAutomaticCheckinOpen(new Date("2026-11-29T21:09:00Z")), false);
 });
 
 test("manual runs stay available after the automatic cutoff", () => {
-  const closed = new Date("2026-11-26T01:00:00+08:00");
+  const closed = new Date("2026-11-30T01:00:00+08:00");
   assert.equal(shouldCheckIn({ GITHUB_EVENT_NAME: "schedule" }, closed), false);
   assert.equal(shouldCheckIn({ MINDVIDEO_SCHEDULED: "1" }, closed), false);
   assert.equal(shouldCheckIn({ GITHUB_EVENT_NAME: "workflow_dispatch" }, closed), true);
@@ -42,11 +42,11 @@ test("schedule window writes active=false for a scheduled run on the cutoff date
         GITHUB_ACTIONS: "",
         GITHUB_EVENT_NAME: "schedule",
         GITHUB_OUTPUT: output,
-        MINDVIDEO_NOW: "2026-11-26T05:09:00+08:00",
+        MINDVIDEO_NOW: "2026-11-30T05:09:00+08:00",
       },
     });
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-    assert.match(result.stdout, /stopped on 2026-11-26/);
+    assert.match(result.stdout, /stopped on 2026-11-30/);
     assert.equal(fs.readFileSync(output, "utf8").trim(), "active=false");
   } finally {
     fs.rmSync(output, { force: true });
